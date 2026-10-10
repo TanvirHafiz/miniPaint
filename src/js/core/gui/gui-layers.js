@@ -12,6 +12,7 @@ import Effects_browser_class from './../../modules/effects/browser.js';
 import Layer_duplicate_class from './../../modules/layer/duplicate.js';
 import Layer_raster_class from './../../modules/layer/raster.js';
 import Tools_translate_class from './../../modules/tools/translate.js';
+import './../../layer-effects/layer-style.css'; // layer effects (Phase 4)
 
 var template = `
 	<button type="button" class="layer_add trn" id="insert_layer" title="Insert new layer">+</button>
@@ -99,6 +100,11 @@ class GUI_layers_class {
 					new app.Actions.Select_layer_action(target.dataset.id)
 				);
 			}
+			else if (target.id == 'layer_fx') {
+				//open Layer Style dialog (layer effects)
+				_this.Base_layers.select(target.dataset.id);
+				window.AI_layer_style && window.AI_layer_style.open(target.dataset.id);
+			}
 			else if (target.id == 'delete_filter') {
 				//delete filter
 				app.State.do_action(
@@ -153,6 +159,7 @@ class GUI_layers_class {
 					class_extra += ' active';
 				}
 
+				class_extra += ' fxrow';
 				html += '<div class="item ' + class_extra + '">';
 				if (value.visible == true)
 					html += '	<button class="visibility visible trn" id="visibility" data-id="' + value.id + '" title="Hide"></button>';
@@ -166,6 +173,7 @@ class GUI_layers_class {
 
 				var layer_title = this.Helper.escapeHtml(value.name);
 				
+				html += '	<button class="layer_fx' + ((value.effects || []).length ? ' on' : '') + '" id="layer_fx" data-id="' + value.id + '" title="Layer Style (effects)">fx</button>';
 				html += '	<button class="layer_name" id="layer_name" data-id="' + value.id + '">' + layer_title + '</button>';
 				html += '	<div class="clear"></div>';
 				html += '</div>';

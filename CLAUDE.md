@@ -8,10 +8,11 @@ A fork of miniPaint (plain JavaScript, HTML5 canvas, webpack, jQuery) turned int
 
 ## Current status
 
-- Phases 0 to 3 are done (see `plan.md`, section 9). Each phase is on its own stacked branch: `phase-0-recon` -> `phase-1-runware` -> `phase-2-canvas-io` -> `phase-3-ai-panel`. `phase-3-ai-panel` contains everything.
+- Phases 0 to 4 are done (see `plan.md`, section 9). Each phase is on its own stacked branch: `phase-0-recon` -> `phase-1-runware` -> `phase-2-canvas-io` -> `phase-3-ai-panel` -> `phase-4-layer-effects`. The latest branch contains everything.
 - Live with a real key, the owner has confirmed **Generate (text to image) works**.
 - **Not yet confirmed live:** requests with image inputs (Inpaint, Edit, Outpaint, Remove BG, Upscale). Runware's REST docs put image inputs at the task root, but the model schemas nest them under `inputs`. The client defaults to `inputs` style, falls back to the other style once on a validation error, and remembers what worked in localStorage. The menu item **AI > Diagnose Request Format** settles it with a very cheap call. Do this first on a new machine.
-- Next: **Phase 4, layer effects** (see `plan.md` sections 8 and 9), then Phase 5 (selection upgrades), Phase 6 (polish).
+- Phase 4 (layer effects) is done on branch `phase-4-layer-effects`; AI image-input verbs were confirmed working live.
+- Next: Phase 5 (selection upgrades), Phase 6 (polish), Phase 7 (modern UI redesign, requested by the owner).
 
 ## Run it
 

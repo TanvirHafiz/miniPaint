@@ -38,6 +38,9 @@ export class Update_layer_action extends Base_action {
 		if (this.settings.params || this.settings.width || this.settings.height) {
 			config.need_render_changed_params = true;
 		}
+		if ('effects' in this.settings) {
+			app.GUI.GUI_layers.render_layers(); // layer effects: refresh the fx button state
+		}
 		config.need_render = true;
 	}
 
@@ -57,6 +60,9 @@ export class Update_layer_action extends Base_action {
 		}
 		this.reference_layer = null;
 		config.need_render = true;
+		if (this.settings && 'effects' in this.settings) {
+			app.GUI.GUI_layers.render_layers(); // layer effects: refresh the fx button state
+		}
 	}
 
 	free() {

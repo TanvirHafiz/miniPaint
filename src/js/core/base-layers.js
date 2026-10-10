@@ -12,6 +12,7 @@ import View_ruler_class from "./../modules/view/ruler.js";
 import zoomView from "./../libs/zoomView.js";
 import Helper_class from "./../libs/helpers.js";
 import alertify from "./../../../node_modules/alertifyjs/build/alertify.min.js";
+import { render_layer_effects } from "./../layer-effects/effects.js"; // layer effects (Phase 4)
 
 var instance = null;
 
@@ -369,6 +370,26 @@ class Base_layers_class {
 	 */
 	render_object(ctx, object, is_preview) {
 		if (object.visible == false || object.type == null) return;
+
+		// miniPaint AI: non-destructive layer effects. Draws the bare layer (flag _fx_inner) into the effects
+		// renderer, which caches the composite. Covers canvas, preview, export, merge and flatten.
+		if (!object._fx_inner && Array.isArray(object.effects) && object.effects.length > 0) {
+			let drawn = false;
+			try {
+				drawn = render_layer_effects(ctx, object, (c) => {
+					object._fx_inner = true;
+					try {
+						this.render_object(c, object, is_preview);
+					} finally {
+						delete object._fx_inner;
+					}
+				});
+			} catch (error) {
+				delete object._fx_inner;
+				console.log("Error: layer effects failed: " + error);
+			}
+			if (drawn) return;
+		}
 
 		this.pre_render_object(ctx, object);
 

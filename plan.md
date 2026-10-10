@@ -203,7 +203,10 @@ Phase 0 findings for this section: hook the renderer inside `Base_layers_class.r
 
 ### Phase 4: Layer effects
 - Effects data model, renderer, cache, Layer Style dialog, copy/paste style, save/load in JSON.
-- **Done when:** a text layer with drop shadow + stroke + bevel looks right, saves and reloads.
+- **Done when:** a text layer with drop shadow + stroke + bevel looks right, saves and reloads. **DONE** (branch phase-4-layer-effects).
+- Built: `src/js/layer-effects/` (`effects-math.js` pure + tested, `effects.js` renderer with per-layer cache, `layer-style.js` + `.css` dialog), `modules/layer/style.js` menu wrapper. Effects: drop shadow, outer glow, inner shadow, stroke (outside/inside/center), bevel and emboss. Layer > Layer Style..., Copy / Paste / Clear Layer Style, and an fx button on each layer row (lit when effects exist). One undo step per dialog OK.
+- Core hooks (small, commented): `render_object` in `core/base-layers.js`, `effects: []` default in `actions/insert-layer.js`, `Update_layer_action` refreshes the layer list when `effects` changes, fx button in `gui-layers.js`, menu entries in `config-menu.js`.
+- Verified in headless pane: pixel checks for stroke, shadow direction, bevel light side on image and text layers, JSON save then load gives identical pixels, undo/redo/cancel. Known limits: effects are cached at document resolution (soft at high zoom); no knock-out, no gradient or pattern fills, fixed effect order; effects on layers over 6000 px are skipped.
 
 ### Phase 5: Selection upgrades
 - Lasso and polygonal lasso (missing), ellipse selection, magic wand selection (missing; only magic eraser exists). Owned by a new `src/js/ai/mask.js` mask canvas.
@@ -217,6 +220,12 @@ Phase 0 findings for this section: hook the renderer inside `Base_layers_class.r
 - Prompt history dropdown.
 - Clean dark theme.
 - README with setup steps and screenshots.
+
+### Phase 7: Modern UI redesign (requested, do after Phase 6)
+- Redesign the whole editor interface to look modern: new theme tokens (CSS variables) with dark and light modes, refreshed top menu, toolbar icons, sidebar panels, dialogs, layer list and the AI panel and Layer Style dialog, consistent spacing, type and motion.
+- Approach: first write a short design brief (look, palette, density) and get the owner's sign-off, then restyle through CSS variables with minimal core markup changes so upstream merges stay possible.
+- Replaces the "Clean dark theme" item in Phase 6.
+- **Done when:** every screen and dialog uses the new theme in both modes, and nothing functional regressed.
 
 ---
 

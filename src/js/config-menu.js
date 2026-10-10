@@ -322,6 +322,25 @@ const menuDefinition = [
 				divider: true
 			},
 			{
+				name: 'Layer Style...',
+				target: 'layer/style.open'
+			},
+			{
+				name: 'Copy Layer Style',
+				target: 'layer/style.copy'
+			},
+			{
+				name: 'Paste Layer Style',
+				target: 'layer/style.paste'
+			},
+			{
+				name: 'Clear Layer Style',
+				target: 'layer/style.clear'
+			},
+			{
+				divider: true
+			},
+			{
 				name: 'Move',
 				children: [
 					{
