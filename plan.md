@@ -226,6 +226,8 @@ Phase 0 findings for this section: hook the renderer inside `Base_layers_class.r
 - Approach: first write a short design brief (look, palette, density) and get the owner's sign-off, then restyle through CSS variables with minimal core markup changes so upstream merges stay possible.
 - Replaces the "Clean dark theme" item in Phase 6.
 - **Done when:** every screen and dialog uses the new theme in both modes, and nothing functional regressed.
+- **Direction chosen: A, Studio** (charcoal, indigo accent, 8 to 12px corners, floating panels), dark default plus a light mode. Status: first pass DONE on branch phase-7-ui-redesign: `src/css/modern.css` (loaded last; overrides the existing theme variables for dark and light, restyles menu bar, dropdowns, tool strip, right panels, layer list, dialogs, AI panel, Layer Style), View > Toggle Light / Dark Theme (`modules/view/theme.js`, saved to the theme setting). The green theme still works and gets the new shapes. Checked: dark and light, menus, Resize dialog, AI panel, Layer Style, layer list.
+- Still to do in Phase 7: restyle the tool options bar and color picker block, the preview block buttons, the remaining effect and settings dialogs, replace the tool icons with a consistent set, mobile menu check, a visual pass on every dialog.
 
 ---
 

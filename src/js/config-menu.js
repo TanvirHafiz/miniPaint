@@ -162,6 +162,10 @@ const menuDefinition = [
 				]
 			},
 			{
+				name: 'Toggle Light / Dark Theme',
+				target: 'view/theme.toggle'
+			},
+			{
 				name: 'Grid',
 				shortcut: 'G',
 				target: 'view/grid.grid'
