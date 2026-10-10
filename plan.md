@@ -20,7 +20,8 @@ It should feel like a small Photoshop: layers, selections, layer effects (shadow
 ## 2. What miniPaint already gives us
 
 - Multi-layer system with merge, flatten, transparency
-- Selection, magic wand, crop, clone, fill, brush, eraser, text ("letter")
+- Rectangular selection, crop, clone, fill, magic eraser, brush, eraser, text
+- Note (Phase 0): there is no magic wand, lasso or ellipse selection and no masks. Selection is one axis-aligned rectangle (see docs/ARCHITECTURE-NOTES.md section 3).
 - Color corrections, filters, effects, Instagram-style filters
 - Undo, clipboard paste, drag and drop, save as PNG/JPG/WEBP/JSON (layers)
 - Runs fully in the browser, no backend
@@ -68,6 +69,7 @@ New code lives in its own folders so upstream miniPaint updates stay mergeable:
 - One task type, `imageInference`, covers text-to-image, image-to-image, inpainting and outpainting. The workflow is chosen by which parameters are sent.
 - Every task needs a unique `taskUUID` (UUID v4). Requests are an **array** of task objects.
 - `seedImage` and `maskImage` accept a UUID of an uploaded image, a data URI, raw base64, or a public URL. Data URIs are simplest for us.
+- **Input shape (checked in Phase 1):** the public REST docs put `seedImage`, `maskImage`, `referenceImages` (and `inputImage` for utilities) at the task root, but the current per-model schemas and Runware's own example requests nest them under `inputs` (`inputs.seedImage`, `inputs.maskImage`, `inputs.referenceImages`, `inputs.image`) with `additionalProperties: false`. The client defaults to the `inputs` style; `buildInputs()` in `runware-client.js` is the only place that knows the shape, and `INPUT_STYLE` in `models.js` flips it.
 - **Mask convention:** white = area to edit, black = keep.
 - `width` / `height`: 128 to 2048, **divisible by 64**.
 - `outpaint`: `{ top, right, bottom, left, blur }`. Each side a **multiple of 64**. Final `width`/`height` must equal original size plus extensions.
@@ -77,7 +79,7 @@ New code lives in its own folders so upstream miniPaint updates stay mergeable:
 - `numberResults` 1 to 20. We use 1 to 4 for a variations picker.
 - `outputFormat: "PNG"`, `outputType: "dataURI"` or `"URL"`.
 - **Always send `includeCost: true`** and show the `cost` (USD) after every generation.
-- Background removal and upscaling are separate task types. Claude Code must confirm the current task names and parameters in the Runware docs before implementing them.
+- Background removal and upscaling are separate task types. REST docs: `imageBackgroundRemoval` / `imageUpscale` with root `inputImage`. Current model examples: `removeBackground` / `upscale` with `inputs.image` (responses echo `imageBackgroundRemoval` / `imageUpscale`). Recorded in `models.js`; verify with a live key before shipping Remove BG / Upscale (Phase 3).
 
 Docs: https://runware.ai/docs/en/image-inference/api-reference
 
@@ -101,18 +103,17 @@ Docs: https://runware.ai/docs/en/image-inference/api-reference
 
 Each verb gets a **Fast** and a **Quality** model, plus an "Advanced" dropdown to pick any model.
 
-Do **not** hardcode guessed model IDs. In Phase 1, Claude Code looks up current AIR IDs using the Runware model search (docs or the Runware MCP) and fills this table. Known from the docs as a starting point (verify first):
-
-- `runware:102@1` is FLUX Fill (inpaint / outpaint candidate)
-- `runware:106@1` appears in the docs' FLUX Kontext reference-image example (edit candidate)
+Filled in Phase 1 from Runware's curated catalog (see `src/js/ai/models.js` for labels, capability flags and size rules):
 
 ```js
-// models.js shape
 export const MODELS = {
-  generate: { fast: "<AIR>", quality: "<AIR>" },
-  inpaint:  { fast: "<AIR>", quality: "<AIR>" },
-  edit:     { fast: "<AIR>", quality: "<AIR>" },
-  outpaint: { fast: "<AIR>", quality: "<AIR>" },
+  generate: { fast: "runware:400@2" /* FLUX.2 klein 9B, multiple of 16 */, quality: "runware:101@1" /* FLUX.1 dev */ },
+  edit:     { fast: "runware:400@2" /* inputs.referenceImages, up to 4 */, quality: "runware:106@1" /* FLUX.1 Kontext dev */ },
+  inpaint:  { fast: "runware:102@1", quality: "runware:102@1" },   // FLUX.1 Fill
+  outpaint: { fast: "runware:102@1", quality: "runware:102@1" },
+  removeBg: { fast: "runware:112@5" /* BiRefNet */, quality: "bria:2@1" },
+  upscale:  { fast: "runware:504@1" /* Real-ESRGAN x2/x4 */, quality: "bria:52@1" },
+  erase:    { fast: "runware:300@1", quality: "bfl:flux@erase" },  // later
 };
 ```
 
@@ -120,7 +121,7 @@ export const MODELS = {
 
 ## 7. The inpaint pipeline (most important flow)
 
-1. User makes a selection (rect, ellipse, lasso, magic wand, or mask brush).
+1. User makes a selection. Phases 2 to 4: the existing rectangle only, captured at click time as an "AI region" (selection is cleared on tool change, layer click and Escape). Ellipse, lasso, magic wand and mask brush arrive in Phase 5 as a mask canvas plus bounding box, so the rest of this pipeline does not change.
 2. `canvas-io.js`:
    - flattens visible layers to an image (option: "active layer only")
    - computes the selection bounding box, adds padding (about 25%), crops that region
@@ -128,7 +129,7 @@ export const MODELS = {
    - builds a matching black/white mask (white = selection), with optional feather
 3. `runware-client.js` sends `seedImage` + `maskImage` + prompt + `strength` + `includeCost: true` (+ `maskMargin` for small selections).
 4. Result comes back, gets scaled back to the crop size and placed at the crop position on a **new layer**.
-5. That new layer is clipped to the original selection with a soft edge, so only the edited area shows.
+5. That new layer is clipped to the original selection with a soft edge, so only the edited area shows. miniPaint has no layer masks, so the soft edge is **baked into the result layer's alpha** (`destination-in` with a feathered mask) before insertion. The base image is untouched because the result is still its own layer.
 6. Status bar shows: time taken and `$cost`.
 
 Small crops sent to the API = faster and cheaper than sending the full image every time. This is where the "fast" feeling comes from.
@@ -154,23 +155,26 @@ Render effects at composite time (not baked into pixels):
 - **Stroke:** dilate the alpha mask (outside), erode (inside), or both (center).
 - **Bevel & Emboss:** treat a blurred alpha as a height map, compute a simple light direction from angle/altitude, paint highlights and shadows, clip to the layer.
 
-Cache each layer's rendered effects and only re-render when the layer or its effects change. Add a "Layer Style" dialog (double-click a layer) with live preview, plus "copy style / paste style".
+Cache each layer's rendered effects and only re-render when the layer or its effects change (every layer is drawn twice per frame: canvas and preview). Add a "Layer Style" dialog with live preview, plus "copy style / paste style". Trigger: an "fx" button on the layer row and a Layer menu entry, **not** double-click (double-click already renames a layer).
+
+Phase 0 findings for this section: hook the renderer inside `Base_layers_class.render_object` (covers canvas, preview, export, merge, flatten); add `effects: []` to the layer defaults in `actions/insert-layer.js` so JSON load accepts it (save already serializes it); commit edits with one `Update_layer_action` (do not reuse `Add_layer_filter_action`, its undo pops the wrong filter).
 
 ---
 
 ## 9. Phases
 
-### Phase 0: Setup and recon
+### Phase 0: Setup and recon (DONE, branch phase-0-recon)
 - Fork `viliusle/miniPaint` to my GitHub, clone locally.
 - `npm install`, then read `package.json` scripts and the repo Wiki "Build instructions" to get dev server and build working.
 - Claude Code maps the codebase and writes `docs/ARCHITECTURE-NOTES.md`: where layers live, how compositing works, how selection is stored, how menus/dialogs are registered, how undo state is captured, how JSON save/load works.
-- **Done when:** dev server runs and the notes file exists.
+- **Done when:** dev server runs and the notes file exists. Done: build and dev server verified, notes in `docs/ARCHITECTURE-NOTES.md`.
 
-### Phase 1: Proxy + Runware client
+### Phase 1: Proxy + Runware client (DONE, branch phase-1-runware)
 - `/server` Express proxy, `.env` with `RUNWARE_API_KEY`, `.env.example` committed, `.env` gitignored.
 - `runware-client.js` with a "Test connection" button in Settings.
 - Look up and fill `models.js`.
-- **Done when:** a Generate call from the UI places an image on a new layer and shows its cost.
+- Dev server forwards `/api` to the proxy and blocks `/.git`, `/server`, `/node_modules`, `/docs`, `plan.md`, `package*.json` and dotfiles.
+- **Done when:** a Generate call from the UI places an image on a new layer and shows its cost. Done in mock mode (`RUNWARE_MOCK=1`); a live call needs a real key (see README "AI features").
 
 ### Phase 2: Canvas I/O
 - Flatten, crop with padding, size snapping to 64, selection to mask, feather, place result back.
@@ -178,7 +182,8 @@ Cache each layer's rendered effects and only re-render when the layer or its eff
 - **Done when:** a debug button exports image + mask PNGs that line up perfectly.
 
 ### Phase 3: AI panel
-- Docked panel: prompt box, verb buttons, Fast/Quality toggle, strength slider, variations count, model dropdown.
+- Docked panel: prompt box, verb buttons, Fast/Quality toggle, strength slider, variations count, model dropdown. The right sidebar is only 200 px wide; give the AI panel its own wider column (about 280 px) or a collapsible block, and stop keydown propagation inside it so editor shortcuts (N, D, S) do not fire.
+- Outpaint must be one undo step that grows the canvas, shifts every existing layer by the left/top extension, and inserts the result.
 - Inpaint, Edit, Outpaint, then Remove BG and Upscale.
 - Variations picker (thumbnails, click to place).
 - Loading state on the canvas area being edited, cancel button, clear error messages.
@@ -190,7 +195,7 @@ Cache each layer's rendered effects and only re-render when the layer or its eff
 - **Done when:** a text layer with drop shadow + stroke + bevel looks right, saves and reloads.
 
 ### Phase 5: Selection upgrades
-- Lasso and polygonal lasso if missing or weak.
+- Lasso and polygonal lasso (missing), ellipse selection, magic wand selection (missing; only magic eraser exists). Owned by a new `src/js/ai/mask.js` mask canvas.
 - Mask brush (paint the AI edit area, with a red overlay like Quick Mask).
 - Feather / expand / contract.
 - Optional: "Select Subject" using Runware background removal output as a mask.

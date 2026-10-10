@@ -45,6 +45,31 @@ To embed this app on another page, use the following HTML code:
 ## Build instructions
 See [Wiki > Build instructions](https://github.com/viliusle/miniPaint/wiki/Build-instructions)
 
+## AI features (Runware)
+This fork adds AI image generation through the [Runware](https://runware.ai) API. The browser never sees the API key: a small local proxy in `server/` adds it to each request.
+
+**1. Provide the key** (one of):
+- GitHub Codespaces: add a Codespaces secret named `RUNWARE_API_KEY` (GitHub > Settings > Codespaces > Secrets, allow this repository), then rebuild or restart the Codespace.
+- Local: `cp server/.env.example server/.env` and set `RUNWARE_API_KEY=...` (the file is gitignored). An environment variable wins over the file.
+
+**2. Run**
+```
+npm install
+npm run start:ai        # proxy (port 8787) + dev server (port 8080) together
+# or in two terminals:
+npm run proxy
+npx webpack serve --mode development --env development --no-open
+```
+Open http://localhost:8080 (in Codespaces, open the forwarded port 8080). The dev server forwards `/api/*` to the proxy.
+
+**3. Use** the **AI** menu: *Runware Settings / Test Connection* checks the proxy and whether a key is present; *Generate...* takes a prompt, Fast/Quality, size (snapped to what the model accepts) and 1 to 4 results. Each result becomes a new layer named `AI: <prompt>`; one Ctrl+Z removes the whole batch. Every request asks Runware for its cost, and the toast shows the cost and a session total.
+
+**Mock mode** (no key, no network): `npm run proxy:mock` or `npm run start:ai -- --mock` returns placeholder PNGs with cost 0. Add `RUNWARE_MOCK_DELAY_MS=3000` to test the loading and cancel (Escape) states.
+
+**Tests**: `npm run test:ai` (size snapping math, `node --test`).
+
+Project plan: `plan.md`. Code map: `docs/ARCHITECTURE-NOTES.md`.
+
 ## Wiki
 See [Wiki](https://github.com/viliusle/miniPaint/wiki)
 

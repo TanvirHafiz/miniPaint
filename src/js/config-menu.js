@@ -740,6 +740,25 @@ const menuDefinition = [
 			}
 		]
 	},
+	// miniPaint AI: Runware menu (module: src/js/modules/ai/ai.js)
+	{
+		name: 'AI',
+		children: [
+			{
+				name: 'Generate',
+				ellipsis: true,
+				target: 'ai/ai.generate'
+			},
+			{
+				divider: true
+			},
+			{
+				name: 'Runware Settings / Test Connection',
+				ellipsis: true,
+				target: 'ai/ai.settings'
+			}
+		]
+	},
 	{
 		name: 'Help',
 		children: [

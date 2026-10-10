@@ -305,3 +305,12 @@ Ordered by how soon they bite.
 - Phase 3: insert results through `Bundle_action` + `Insert_layer_action(..., false)`; add outpaint as one bundle that also shifts layers.
 - Phase 4: implement effects as a pure function `renderLayerWithEffects(ctx, layer, drawLayerFn)` in `src/js/layer-effects/effects.js` so it is testable and the `render_object` hook is a 3-line call.
 - Phase 5: move "magic wand" and "ellipse selection" here, owned by `ai/mask.js`.
+
+## Phase 1 additions (status)
+
+- Risk 1 addressed: `webpack.config.js` devServer now proxies `/api` to `http://127.0.0.1:8787` (`AI_PROXY_PORT`) and a `setupMiddlewares` hook returns 404 for `/.git`, `/.env`, `/server`, `/node_modules`, `/docs`, any dotfile, `plan.md` and `package*.json` (paths are decoded and normalized first, so `%2Egit` and `../` tricks are blocked too).
+- Proxy: `server/index.js` (Express, `express.json({ limit: '50mb' })`, binds 127.0.0.1). Mock mode in `server/mock.js`. Combined runner `server/start-ai.js`.
+- New code: `src/js/ai/` (`runware-client.js`, `models.js`, `size.js`, `ai-generate.js`, `__tests__/size.test.mjs`) plus the thin wrapper `src/js/modules/ai/ai.js` (menu targets `ai/ai.generate`, `ai/ai.settings`).
+- Core files touched: `config-menu.js` (AI menu), `webpack.config.js` (devServer), `package.json` (scripts, express). No changes to layer, render or undo code yet.
+- AI results use `Bundle_action('ai_generate', ...)` of `Insert_layer_action(..., false)` with explicit `width_original/height_original`, so a batch is one undo step (verified in a headless browser: Ctrl+Z removes all, Ctrl+Y restores).
+- The Generate dialog reuses `Dialog_class` but replaces the OK button's listener (clone and swap) so the dialog stays open while the request runs, and stops keydown propagation so editor shortcuts do not fire while typing.

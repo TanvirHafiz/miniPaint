@@ -13,7 +13,11 @@
   "scripts": {
     "server": "webpack serve --mode development --env development --open",
     "dev": "webpack --mode development",
-    "build": "webpack --mode production"
+    "build": "webpack --mode production",
+    "proxy": "node server/index.js",
+    "proxy:mock": "node server/index.js --mock",
+    "start:ai": "node server/start-ai.js",
+    "test:ai": "node --test src/js/ai/__tests__/size.test.mjs"
   },
   "repository": {
     "type": "git",
@@ -38,6 +42,7 @@
     "alertifyjs": "^1.13.1",
     "blueimp-canvas-to-blob": "^3.28.0",
     "exif-js": "^2.3.0",
+    "express": "^4.22.3",
     "file-saver": "^2.0.5",
     "fuzzysort": "^1.1.4",
     "gif.js.optimized": "^1.0.1",
