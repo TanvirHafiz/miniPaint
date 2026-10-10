@@ -334,3 +334,14 @@ Gotchas found while testing:
 - Escape in a popup also reaches the Selection tool's own document keydown handler, which clears the selection and records a `clear_selection` history step. Phase 3 should capture the region before opening any dialog and should not rely on the selection surviving Escape.
 - Resampling to the send size and back blurs 1 px detail (for example grid lines) in the placed result: well inside the selection the inverted test result had median error 0 and p95 about 29/255, all of it on grid lines. This is inherent to scaling; the crop pixels themselves export exactly (max diff 0).
 - The Information panel only refreshes the canvas size on mousemove (upstream behavior). `applyOutpaintCanvas` calls `show_size()` after applying.
+
+## AI panel and verbs (Phase 3)
+
+Files: `src/js/ai/ai-panel.js` + `ai-panel.css` (floating panel, created on window load by the module wrapper, exposed as `window.AI_panel`), `src/js/ai/ai-verbs.js` (one runner per verb: prepare pixels, call Runware, return a result whose `place()` is a single undo step), `runware-client.js` (request format fallback, diagnose, injectable transport for tests), `server/mock.js` (PNG decode/encode with zlib, per-task fake results).
+
+- Verbs and models: Generate (runware:400@2 fast / 101@1 quality, canvas size snapped), Inpaint (runware:102@1, `inputs.seedImage` + `inputs.maskImage`, strength, `maskMargin: 64` when the selection is under 40% of the send image), Edit (runware:400@2 with `inputs.referenceImages`, size multiple of 16 / runware:106@1 with a fixed size preset), Outpaint (runware:102@1, `outpaint {top,right,bottom,left,blur}`), Remove BG (runware:112@5 / bria:2@1, `inputs.image`), Upscale (runware:504@1 / bria:52@1, `inputs.image`, `upscaleFactor` 2 or 4).
+- Placement: `placeResults` (canvas-io) bakes the soft clip and inserts N layers in one `Bundle_action('ai_place_result')`; `applyOutpaintCanvas` and the new `applyUpscaleCanvas` resize the canvas through `Update_config_action` and update every layer with `Update_layer_action` inside the same bundle.
+- Request format: `getRequestFormat()` returns `{imageInference: {style}, utility: {style, taskTypes}}` from localStorage key `minipaint_ai_request_format`. `run_with_fallback` retries once with the other style (and, for utility tasks, the other task type name) only when `classifyFormatError` says the error points at inputs or taskType; content errors (credits, sizes) are never retried.
+- Panel keyboard isolation: the panel root stops propagation of keydown/keyup/keypress/mousedown/touchstart/wheel so document handlers (tool shortcuts, Selection tool Escape, Base_selection drag) never see them.
+- miniPaint CSS hides every `button:disabled` (`visibility: hidden` in reset.css); the panel overrides that inside `.ai_panel`.
+- Panel state keys: `minipaint_ai_panel` (position, open, collapsed, verb, prompt, options).

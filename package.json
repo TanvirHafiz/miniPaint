@@ -17,7 +17,7 @@
     "proxy": "node server/index.js",
     "proxy:mock": "node server/index.js --mock",
     "start:ai": "node server/start-ai.js",
-    "test:ai": "node --test src/js/ai/__tests__/size.test.mjs src/js/ai/__tests__/region-math.test.mjs"
+    "test:ai": "node --test src/js/ai/__tests__/size.test.mjs src/js/ai/__tests__/region-math.test.mjs src/js/ai/__tests__/client-fallback.test.mjs"
   },
   "repository": {
     "type": "git",

@@ -210,17 +210,16 @@ function clip_alpha_canvas(region, crop, feather) {
 }
 
 /**
- * Scales an AI result back to crop size, bakes a soft clip to the original selection
- * (destination-in), and inserts ONE new layer at crop.x / crop.y as a single undo step.
- * Existing layers are never modified.
+ * Builds Insert_layer_action settings for an AI result: scales the result to crop size and bakes
+ * a soft clip to the selection (destination-in). Does not touch history.
  *
  * @param {string|HTMLImageElement|HTMLCanvasElement} resultImage image in send space (any size)
- * @param {{x,y,w,h}} crop from buildRequestRegion
+ * @param {{x,y,w,h}} crop from buildRequestRegion (or the full canvas)
  * @param {{x,y,w,h}|null} region selection to clip to; null keeps the whole crop
  * @param {{feather?: number, name?: string}} opts feather in canvas px (default DEFAULTS.clipFeather)
- * @returns {Promise<{status:string}>} result of State.do_action
+ * @returns {Promise<object>} settings for Insert_layer_action
  */
-export async function placeResult(resultImage, crop, region, opts = {}) {
+export async function buildResultLayerSettings(resultImage, crop, region, opts = {}) {
 	const feather = opts.feather !== undefined ? opts.feather : DEFAULTS.clipFeather;
 	const img = await loadImage(resultImage);
 	const canvas = make_canvas(crop.w, crop.h);
@@ -233,21 +232,110 @@ export async function placeResult(resultImage, crop, region, opts = {}) {
 		ctx.drawImage(clip_alpha_canvas(region, crop, feather), 0, 0);
 		ctx.globalCompositeOperation = 'source-over';
 	}
+	return {
+		name: opts.name || 'AI: result',
+		type: 'image',
+		data: canvas.toDataURL('image/png'),
+		x: crop.x,
+		y: crop.y,
+		width: crop.w,
+		height: crop.h,
+		width_original: crop.w,
+		height_original: crop.h,
+	};
+}
+
+/**
+ * Scales an AI result back to crop size, bakes a soft clip to the original selection
+ * (destination-in), and inserts ONE new layer at crop.x / crop.y as a single undo step.
+ * Existing layers are never modified.
+ *
+ * @param {string|HTMLImageElement|HTMLCanvasElement} resultImage image in send space (any size)
+ * @param {{x,y,w,h}} crop from buildRequestRegion
+ * @param {{x,y,w,h}|null} region selection to clip to; null keeps the whole crop
+ * @param {{feather?: number, name?: string}} opts feather in canvas px (default DEFAULTS.clipFeather)
+ * @returns {Promise<{status:string}>} result of State.do_action
+ */
+export async function placeResult(resultImage, crop, region, opts = {}) {
+	return placeResults([resultImage], crop, region, [opts]);
+}
+
+/**
+ * Places several results (variations) as separate layers in ONE undo step.
+ * @param {Array} images
+ * @param {{x,y,w,h}} crop
+ * @param {{x,y,w,h}|null} region
+ * @param {Array<object>|object} opts per image options (or one object for all)
+ */
+export async function placeResults(images, crop, region, opts = {}) {
+	const list = [];
+	for (let i = 0; i < images.length; i++) {
+		const o = Array.isArray(opts) ? (opts[i] || {}) : opts;
+		list.push(await buildResultLayerSettings(images[i], crop, region, o));
+	}
+	const actions = list.map((settings) => new app.Actions.Insert_layer_action(settings, false));
 	return app.State.do_action(
-		new app.Actions.Bundle_action('ai_place_result', 'AI Result', [
-			new app.Actions.Insert_layer_action({
-				name: opts.name || 'AI: result',
-				type: 'image',
-				data: canvas.toDataURL('image/png'),
-				x: crop.x,
-				y: crop.y,
-				width: crop.w,
-				height: crop.h,
-				width_original: crop.w,
-				height_original: crop.h,
-			}, false),
-		])
+		new app.Actions.Bundle_action('ai_place_result', 'AI Result', actions)
 	);
+}
+
+/**
+ * Applies an upscaled copy of the document in ONE undo step: the canvas grows by `factor`,
+ * every layer's x, y, width and height are multiplied by `factor` (so the originals keep their
+ * layout; raster layers are stretched, text font sizes and shape stroke widths are NOT scaled),
+ * and the upscaled image is inserted as a new top layer at 0,0 covering the new canvas.
+ *
+ * @param {string|HTMLImageElement|HTMLCanvasElement} resultImage upscaled image
+ * @param {number} factor 2 or 4
+ * @param {{name?: string}} opts
+ */
+export async function applyUpscaleCanvas(resultImage, factor, opts = {}) {
+	const img = await loadImage(resultImage);
+	const NW = Math.round(config.WIDTH * factor);
+	const NH = Math.round(config.HEIGHT * factor);
+	const actions = [
+		new app.Actions.Prepare_canvas_action('undo'),
+		new app.Actions.Update_config_action({ WIDTH: NW, HEIGHT: NH }),
+	];
+	for (const layer of config.layers) {
+		const s = {};
+		if (layer.x != null) s.x = Math.round(layer.x * factor);
+		if (layer.y != null) s.y = Math.round(layer.y * factor);
+		if (layer.width) s.width = Math.round(layer.width * factor);
+		if (layer.height) s.height = Math.round(layer.height * factor);
+		if (Object.keys(s).length) actions.push(new app.Actions.Update_layer_action(layer.id, s));
+	}
+	actions.push(new app.Actions.Prepare_canvas_action('do'));
+	const iw = img.naturalWidth || img.width;
+	const ih = img.naturalHeight || img.height;
+	actions.push(new app.Actions.Insert_layer_action({
+		name: opts.name || 'AI Upscale: ' + factor + 'x',
+		type: 'image',
+		data: img.src || (img.toDataURL ? img.toDataURL('image/png') : resultImage),
+		x: 0,
+		y: 0,
+		width: NW,
+		height: NH,
+		width_original: iw,
+		height_original: ih,
+	}, false));
+	const result = await app.State.do_action(
+		new app.Actions.Bundle_action('ai_upscale', 'AI Upscale', actions)
+	);
+	app.GUI.GUI_layers.render_layers();
+	if (app.GUI.GUI_information) app.GUI.GUI_information.show_size();
+	config.need_render = true;
+	return result;
+}
+
+/**
+ * Rect of a layer clamped to the canvas (rotation ignored: rotated layers use the full canvas).
+ * @returns {{x,y,w,h}|null}
+ */
+export function layerRect(layer) {
+	if (!layer || layer.type == null) return null;
+	if (layer.rotate || layer.width == null || layer.height == null) return fullCanvasRegion();
+	return normalizeRect({ x: layer.x || 0, y: layer.y || 0, width: layer.width, height: layer.height }, config.WIDTH, config.HEIGHT, 1);
 }
 
 /**

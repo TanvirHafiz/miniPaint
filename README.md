@@ -62,9 +62,20 @@ npx webpack serve --mode development --env development --no-open
 ```
 Open http://localhost:8080 (in Codespaces, open the forwarded port 8080). The dev server forwards `/api/*` to the proxy.
 
-**3. Use** the **AI** menu: *Runware Settings / Test Connection* checks the proxy and whether a key is present; *Generate...* takes a prompt, Fast/Quality, size (snapped to what the model accepts) and 1 to 4 results. Each result becomes a new layer named `AI: <prompt>`; one Ctrl+Z removes the whole batch. Every request asks Runware for its cost, and the toast shows the cost and a session total.
+**3. Use the AI panel.** It floats over the canvas (drag it by its title, collapse with `_`, hide with `x`; the **AI** button in the top bar or *AI > Show / Hide AI Panel* brings it back). Type a prompt, pick a verb tab, press **Run** (or Ctrl+Enter). Draw a rectangle with the Select tool first when a verb works on a region.
+- **Generate**: new image from the prompt at canvas size, as a new layer.
+- **Inpaint**: repaints only the rectangle selection from the prompt (FLUX Fill). Needs a selection.
+- **Edit**: instruction edit ("make the jacket red"). With a selection only that area changes, otherwise the whole image.
+- **Outpaint**: extends the canvas on the chosen sides by N px and fills the new border. Prompt optional.
+- **Remove BG**: cut-out of the active layer (or the whole image) as a new transparent layer; "Hide original" is one click.
+- **Upscale**: 2x or 4x of the whole image. The canvas and every layer scale up and the upscaled image is added on top (one undo); "Download PNG" is offered too.
+- **Fast / Quality** picks the preset model; **Advanced** has the model list, strength (Inpaint), 1 to 4 variations (pick one from the thumbnails or Place all) and the edge feather.
 
-**Mock mode** (no key, no network): `npm run proxy:mock` or `npm run start:ai -- --mock` returns placeholder PNGs with cost 0. Add `RUNWARE_MOCK_DELAY_MS=3000` to test the loading and cancel (Escape) states.
+Every result is a new layer named `AI <verb>: <prompt>` and one Ctrl+Z removes it. The status line shows time and cost, plus a session total. **Cancel** (or Escape in the panel) stops a running request.
+
+**With a real key, run *AI > Diagnose Request Format* once.** It sends two tiny background-removal requests (about $0.0006 each), finds which Runware request format your account accepts and remembers it in the browser. The client also falls back automatically, but diagnosing first avoids a failed first request. *AI > Runware Settings / Test Connection* checks the proxy and the key and can reset the remembered format.
+
+**Mock mode** (no key, no network): `npm run proxy:mock` or `npm run start:ai -- --mock` returns plausible fake results for every verb (color-shifted region for inpaint and edit, transparent border for Remove BG, scaled image for Upscale) with cost 0. `RUNWARE_MOCK_DELAY_MS=3000` adds latency to try Cancel; `RUNWARE_MOCK_REJECT_STYLE=inputs` makes the mock reject one request format so the fallback can be seen.
 
 **Debug**: *AI > Debug: Export Region + Mask* adds the crop and mask that an inpaint request would send as layers (and offers the PNGs); *AI > Debug: Place Test Result* inverts the region locally and places it back like an AI result. Both use the current rectangle selection, or the whole canvas.
 

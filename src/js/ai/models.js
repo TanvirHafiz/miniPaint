@@ -35,8 +35,36 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-/** 'inputs' (current model schemas) or 'root' (legacy REST docs). */
+/**
+ * Default request format: 'inputs' (current model schemas) or 'root' (legacy REST docs).
+ * runware-client.js falls back to the other format automatically on a validation error and
+ * remembers what worked (localStorage), separately for imageInference and utility tasks.
+ */
 export const INPUT_STYLE = 'inputs';
+
+/** Task kinds that share a request format. */
+export function taskKindOf(air) {
+	const info = MODEL_INFO[air];
+	return info && (info.task === 'removeBackground' || info.task === 'upscale') ? 'utility' : 'imageInference';
+}
+
+/** The other documented task type name for a utility task, or null. */
+export function alternateTaskType(taskType) {
+	const pairs = {
+		removeBackground: 'imageBackgroundRemoval',
+		imageBackgroundRemoval: 'removeBackground',
+		upscale: 'imageUpscale',
+		imageUpscale: 'upscale',
+	};
+	return pairs[taskType] || null;
+}
+
+/** Kontext [dev] accepts only these sizes (from its model schema). */
+const KONTEXT_PRESETS = [
+	[1568, 672], [1504, 688], [1456, 720], [1392, 752], [1328, 800], [1248, 832], [1184, 880],
+	[1104, 944], [1024, 1024], [944, 1104], [880, 1184], [832, 1248], [800, 1328], [752, 1392],
+	[720, 1456], [688, 1504], [672, 1568],
+];
 
 export const TASK_TYPES = {
 	inputs: {
@@ -67,7 +95,7 @@ export const MODEL_INFO = {
 	'runware:400@2': {
 		label: 'FLUX.2 [klein] 9B',
 		task: 'imageInference',
-		caps: { textToImage: true, edit: true, inpaint: false, outpaint: false, removeBg: false, upscale: false },
+		caps: { textToImage: true, edit: true, inpaint: false, outpaint: false, removeBg: false, upscale: false, erase: false },
 		size: SIZE_16,
 		defaults: { steps: 4 },
 		maxReferenceImages: 4,
@@ -76,7 +104,7 @@ export const MODEL_INFO = {
 	'runware:101@1': {
 		label: 'FLUX.1 [dev]',
 		task: 'imageInference',
-		caps: { textToImage: true, edit: false, inpaint: false, outpaint: false, removeBg: false, upscale: false },
+		caps: { textToImage: true, edit: false, inpaint: false, outpaint: false, removeBg: false, upscale: false, erase: false },
 		size: SIZE_64,
 		defaults: {},
 		note: 'Higher quality text to image. About $0.0038 at 1024x1024.',
@@ -84,8 +112,9 @@ export const MODEL_INFO = {
 	'runware:106@1': {
 		label: 'FLUX.1 Kontext [dev]',
 		task: 'imageInference',
-		caps: { textToImage: false, edit: true, inpaint: false, outpaint: false, removeBg: false, upscale: false },
-		size: SIZE_64,
+		caps: { textToImage: false, edit: true, inpaint: false, outpaint: false, removeBg: false, upscale: false, erase: false },
+		size: SIZE_16,
+		sizePresets: KONTEXT_PRESETS,
 		defaults: {},
 		maxReferenceImages: 1,
 		note: 'Instruction editing with a reference image. About $0.0105 at 1024x1024.',
@@ -93,7 +122,9 @@ export const MODEL_INFO = {
 	'runware:102@1': {
 		label: 'FLUX.1 Fill',
 		task: 'imageInference',
-		caps: { textToImage: false, edit: false, inpaint: true, outpaint: true, removeBg: false, upscale: false },
+		supportsStrength: true,
+		supportsMaskMargin: true,
+		caps: { textToImage: false, edit: false, inpaint: true, outpaint: true, removeBg: false, upscale: false, erase: false },
 		size: SIZE_64,
 		defaults: { steps: 20 },
 		limits: { maskMargin: [32, 128], strength: [0, 1], outpaintBlur: [0, 32], outpaintMultiple: 64 },
@@ -103,7 +134,7 @@ export const MODEL_INFO = {
 	'runware:112@5': {
 		label: 'BiRefNet General',
 		task: 'removeBackground',
-		caps: { textToImage: false, edit: false, inpaint: false, outpaint: false, removeBg: true, upscale: false },
+		caps: { textToImage: false, edit: false, inpaint: false, outpaint: false, removeBg: true, upscale: false, erase: false },
 		size: null,
 		defaults: { outputFormat: 'PNG' },
 		note: 'Background removal, inputs.image. Use PNG or WEBP to keep alpha. About $0.0006.',
@@ -111,15 +142,15 @@ export const MODEL_INFO = {
 	'bria:2@1': {
 		label: 'Bria RMBG v2.0',
 		task: 'removeBackground',
-		caps: { textToImage: false, edit: false, inpaint: false, outpaint: false, removeBg: true, upscale: false },
+		caps: { textToImage: false, edit: false, inpaint: false, outpaint: false, removeBg: true, upscale: false, erase: false },
 		size: null,
 		defaults: { outputFormat: 'PNG' },
-		note: 'Higher quality background removal. Verify schema before use.',
+		note: 'Higher quality background removal (inputs.image, schema checked).',
 	},
 	'runware:504@1': {
 		label: 'Real-ESRGAN',
 		task: 'upscale',
-		caps: { textToImage: false, edit: false, inpaint: false, outpaint: false, removeBg: false, upscale: true },
+		caps: { textToImage: false, edit: false, inpaint: false, outpaint: false, removeBg: false, upscale: true, erase: false },
 		size: null,
 		defaults: { upscaleFactor: 2 },
 		limits: { upscaleFactor: [2, 4] },
@@ -128,15 +159,16 @@ export const MODEL_INFO = {
 	'bria:52@1': {
 		label: 'Bria Upscale',
 		task: 'upscale',
-		caps: { textToImage: false, edit: false, inpaint: false, outpaint: false, removeBg: false, upscale: true },
+		caps: { textToImage: false, edit: false, inpaint: false, outpaint: false, removeBg: false, upscale: true, erase: false },
 		size: null,
-		defaults: {},
-		note: 'Higher quality upscale. Verify schema before use.',
+		defaults: { upscaleFactor: 2 },
+		limits: { upscaleFactor: [2, 4] },
+		note: 'Higher quality upscale x2 or x4 (inputs.image, schema checked).',
 	},
 	'bfl:flux@erase': {
 		label: 'FLUX Erase',
 		task: 'imageInference',
-		caps: { textToImage: false, edit: true, inpaint: true, outpaint: false, removeBg: false, upscale: false },
+		caps: { textToImage: false, edit: false, inpaint: false, outpaint: false, removeBg: false, upscale: false, erase: true },
 		size: SIZE_64,
 		defaults: {},
 		note: 'Object removal (later phase). Verify schema before use.',
@@ -144,7 +176,7 @@ export const MODEL_INFO = {
 	'runware:300@1': {
 		label: 'Object Eraser',
 		task: 'imageInference',
-		caps: { textToImage: false, edit: false, inpaint: true, outpaint: false, removeBg: false, upscale: false },
+		caps: { textToImage: false, edit: false, inpaint: false, outpaint: false, removeBg: false, upscale: false, erase: true },
 		size: SIZE_64,
 		defaults: {},
 		note: 'Object removal (later phase). Verify schema before use.',
@@ -178,11 +210,28 @@ export function getModelInfo(air) {
 	return MODEL_INFO[air] || null;
 }
 
-/** Task type string for a model under the current INPUT_STYLE. */
-export function taskTypeFor(air) {
+/** Default task type string for a model under a request style ('inputs' or 'root'). */
+export function taskTypeFor(air, style = INPUT_STYLE) {
 	const info = MODEL_INFO[air];
 	const kind = info ? info.task : 'imageInference';
-	return TASK_TYPES[INPUT_STYLE][kind] || 'imageInference';
+	return (TASK_TYPES[style] || TASK_TYPES.inputs)[kind] || 'imageInference';
+}
+
+/** Capability key used by each verb. */
+export const VERB_CAP = {
+	generate: 'textToImage',
+	inpaint: 'inpaint',
+	edit: 'edit',
+	outpaint: 'outpaint',
+	removeBg: 'removeBg',
+	upscale: 'upscale',
+	erase: 'erase',
+};
+
+/** AIR ids of every model that can serve a verb. */
+export function modelsForVerb(verb) {
+	const cap = VERB_CAP[verb];
+	return Object.keys(MODEL_INFO).filter((air) => MODEL_INFO[air].caps && MODEL_INFO[air].caps[cap]);
 }
 
 /** Size rule for a model, falling back to multiples of 64. */

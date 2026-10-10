@@ -245,3 +245,58 @@ export function computeOutpaint(p) {
 	}
 	throw new Error('Outpaint request does not fit in ' + max + ' px. Use smaller extensions.');
 }
+
+/**
+ * Picks the [w, h] preset whose aspect ratio is closest to `aspect` (log distance), preferring
+ * the larger area on ties. Used for models that accept only fixed sizes (FLUX.1 Kontext [dev]).
+ */
+export function pickSizePreset(presets, aspect) {
+	let best = null;
+	let bestD = Infinity;
+	for (const p of presets) {
+		const d = Math.abs(Math.log(p[0] / p[1]) - Math.log(aspect));
+		if (d < bestD - 1e-9 || (Math.abs(d - bestD) <= 1e-9 && best && p[0] * p[1] > best[0] * best[1])) {
+			best = p;
+			bestD = d;
+		}
+	}
+	return best ? { w: best[0], h: best[1] } : null;
+}
+
+/**
+ * Like buildRequestRegion but for a model that only accepts fixed sizes: the send size becomes the
+ * preset closest to the padded crop's aspect, and the crop is grown toward that aspect.
+ */
+export function buildPresetRequestRegion(region, canvasW, canvasH, presets, opts = {}) {
+	const base = buildRequestRegion(region, canvasW, canvasH, opts);
+	const send = pickSizePreset(presets, base.crop.w / base.crop.h);
+	const crop = fitCropToAspect(base.crop, send.w / send.h, canvasW, canvasH);
+	const scaleX = send.w / crop.w;
+	const scaleY = send.h / crop.h;
+	return { crop, send, scale: (scaleX + scaleY) / 2, scaleX, scaleY };
+}
+
+/**
+ * Upscale plan: output size and whether it needs a confirmation.
+ * @returns {{outW:number, outH:number, factor:number, tooLargeInput:boolean, needsConfirm:boolean}}
+ */
+export function planUpscale(canvasW, canvasH, factor, opts = {}) {
+	const f = factor === 4 ? 4 : 2;
+	const maxInput = opts.maxInput || 4096;
+	const warnAt = opts.warnAt || 8000;
+	const outW = canvasW * f;
+	const outH = canvasH * f;
+	return {
+		factor: f,
+		outW,
+		outH,
+		tooLargeInput: Math.max(canvasW, canvasH) > maxInput,
+		needsConfirm: Math.max(outW, outH) > warnAt,
+	};
+}
+
+/** Whether FLUX Fill's maskMargin is worth sending: the selection covers little of the send image. */
+export function wantsMaskMargin(region, crop, send, threshold = 0.4) {
+	const r = mapRectToSend(region, crop, send);
+	return Math.max(r.w / send.w, r.h / send.h) < threshold;
+}

@@ -14,7 +14,7 @@
 const path = require('path');
 const fs = require('fs');
 const express = require('express');
-const { mockResponse } = require('./mock.js');
+const { mockHandle } = require('./mock.js');
 
 const RUNWARE_URL = 'https://api.runware.ai/v1';
 const PORT = parseInt(process.env.AI_PROXY_PORT || '8787', 10);
@@ -117,9 +117,16 @@ app.post('/api/runware', async (req, res) => {
 				return;
 			}
 		}
-		const body = mockResponse(tasks);
-		console.log(`[runware] MOCK ${summary} -> ${body.data.length} result(s), ${Date.now() - started} ms, cost $0.0000`);
-		return res.json(body);
+		let out;
+		try {
+			out = mockHandle(tasks);
+		} catch (error) {
+			console.log(`[runware] MOCK ${summary} -> mock error: ${error && error.message}`);
+			return res.status(500).json({ errors: [{ code: 'mockError', message: 'Mock failed: ' + (error && error.message) }] });
+		}
+		const count = out.body.data ? out.body.data.length : 0;
+		console.log(`[runware] MOCK ${summary} -> HTTP ${out.status}, ${count} result(s), ${Date.now() - started} ms, cost $0.0000`);
+		return res.status(out.status).json(out.body);
 	}
 
 	const key = get_key();

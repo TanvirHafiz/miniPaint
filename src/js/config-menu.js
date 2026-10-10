@@ -745,7 +745,11 @@ const menuDefinition = [
 		name: 'AI',
 		children: [
 			{
-				name: 'Generate',
+				name: 'Show / Hide AI Panel',
+				target: 'ai/ai.panel'
+			},
+			{
+				name: 'Quick Generate',
 				ellipsis: true,
 				target: 'ai/ai.generate'
 			},
@@ -756,6 +760,11 @@ const menuDefinition = [
 				name: 'Runware Settings / Test Connection',
 				ellipsis: true,
 				target: 'ai/ai.settings'
+			},
+			{
+				name: 'Diagnose Request Format',
+				ellipsis: true,
+				target: 'ai/ai.diagnose'
 			},
 			{
 				divider: true

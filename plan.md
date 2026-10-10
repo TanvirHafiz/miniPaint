@@ -183,14 +183,23 @@ Phase 0 findings for this section: hook the renderer inside `Base_layers_class.r
 - Decisions: padding 25% of the region's longer side; small crops upscaled so the long side is at least 512; send size snapped to 64 inside 128..2048 with the crop grown toward the send aspect; mask hard by default (feather option, outward); result clip feather 8 px inward (none on canvas edges); outpaint result on top masked to the new border plus a 24 px blend band, canvas growth via Update_config_action so Autoresize_canvas_action is not involved.
 - Code: `src/js/ai/canvas-io.js`, `region-math.js` (+ tests), `ai-debug.js`.
 
-### Phase 3: AI panel
+### Phase 3: AI panel (DONE, branch phase-3-ai-panel)
 - Docked panel: prompt box, verb buttons, Fast/Quality toggle, strength slider, variations count, model dropdown. The right sidebar is only 200 px wide; give the AI panel its own wider column (about 280 px) or a collapsible block, and stop keydown propagation inside it so editor shortcuts (N, D, S) do not fire.
 - Outpaint must be one undo step that grows the canvas, shifts every existing layer by the left/top extension, and inserts the result.
 - Inpaint, Edit, Outpaint, then Remove BG and Upscale.
 - Variations picker (thumbnails, click to place).
 - Loading state on the canvas area being edited, cancel button, clear error messages.
 - Every AI result is one undo step.
-- **Done when:** select, prompt, Enter, result layer appears, cost shown.
+- **Done when:** select, prompt, Enter, result layer appears, cost shown. Done in mock mode (headless Chromium, 43 checks); live check list in README.
+- UX decisions:
+  - Floating 320 px panel (draggable, collapsible, hideable; state in localStorage), open by default, toggled by an AI button in the top bar and AI > Show / Hide AI Panel. Verb tabs plus one Run button (Ctrl+Enter) so verb options are visible before running.
+  - Keyboard inside the panel never reaches editor shortcuts; Escape in the panel cancels or blurs and keeps the canvas selection.
+  - Selection captured on Run; dashed animated overlay on the working region; Cancel aborts (nothing is placed even if a late response arrives; the cost is still counted).
+  - Variations (2 to 4) for Generate, Inpaint, Edit: thumbnails, click to place one (one undo each), Place all (one undo).
+  - Edit without a selection works on the whole image (full-canvas result layer). Kontext [dev] only accepts fixed sizes, so it uses the preset closest to the crop aspect.
+  - Remove BG works on the active layer by default (or Whole image), never hides anything automatically, offers "Hide original".
+  - Upscale: the document is upscaled in one undo step (canvas x factor, every layer's position and size x factor, upscaled image as a new top layer) plus a Download PNG link. Inputs over 4096 px are refused, outputs over 8000 px ask for confirmation. Known limit: text font sizes and vector stroke widths are not scaled, only the layer boxes.
+  - Request format safety: automatic one-time fallback between 'inputs' and 'root' image placement and between the two task type names, remembered per task kind; AI > Diagnose Request Format probes both with the cheapest task.
 
 ### Phase 4: Layer effects
 - Effects data model, renderer, cache, Layer Style dialog, copy/paste style, save/load in JSON.

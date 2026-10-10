@@ -8,7 +8,7 @@ import config from '../config.js';
 import Dialog_class from '../libs/popup.js';
 import Helper_class from '../libs/helpers.js';
 import alertify from '../../../node_modules/alertifyjs/build/alertify.min.js';
-import { generate, health, formatCost, RunwareError } from './runware-client.js';
+import { generate, health, formatCost, RunwareError, diagnoseRequestFormat, getRequestFormat, resetRequestFormat } from './runware-client.js';
 import { MODELS, pickModel, sizeRuleFor, getModelInfo, INPUT_STYLE } from './models.js';
 import { snapSize } from './size.js';
 
@@ -186,6 +186,7 @@ export class AI_generate_class {
 
 		session.cost += result.cost;
 		session.generations += 1;
+		if (window.AI_panel && window.AI_panel.root) window.AI_panel.update_session();
 		if (popup.active) popup.hide(true);
 		alertify.success(
 			this.Helper.escapeHtml(result.images.length + ' image(s) in ' + (result.ms / 1000).toFixed(1) + ' s, '
@@ -198,7 +199,7 @@ export class AI_generate_class {
 	 * Inserts every result as a new layer at 0,0 in a single undo step.
 	 */
 	async insert_results(images, prompt, display_scale = 1) {
-		const name = 'AI: ' + short_prompt(prompt);
+		const name = 'AI Generate: ' + short_prompt(prompt);
 		const loaded = await Promise.all(images.map((img) => this.measure(img.dataURI || img.url)));
 		const actions = loaded.map((dim, i) => {
 			const src = images[i].dataURI || images[i].url;
@@ -245,17 +246,78 @@ export class AI_generate_class {
 			params: [
 				{ title: 'Proxy:', html: '<span id="ai_health">Not checked</span>' },
 				{ title: 'Session cost:', html: '<span>' + formatCost(session.cost) + ' (' + session.generations + ' generation(s))</span>' },
-				{ title: 'Input style:', html: '<span>' + INPUT_STYLE + '</span>' },
+				{ title: 'Request format:', html: '<span id="ai_format">' + this.format_text() + '</span> <button type="button" class="button" id="ai_format_reset">Reset</button>' },
 				{ title: '', html: '<button type="button" class="button" id="ai_test_connection">Test connection</button>' },
 				{ title: 'Models:', html: '<table class="ai_models"><tr><th>Verb</th><th>Fast</th><th>Quality</th></tr>' + rows + '</table>' },
 				{ title: '', html: '<span class="text_muted">The API key lives only on the proxy (RUNWARE_API_KEY env var or server/.env).</span>' },
 			],
 			on_load: function (params, popup) {
+				popup.el.querySelector('#ai_format_reset').addEventListener('click', () => {
+					resetRequestFormat();
+					popup.el.querySelector('#ai_format').textContent = _this.format_text();
+				});
 				const button = popup.el.querySelector('#ai_test_connection');
 				button.addEventListener('click', () => _this.test_connection(popup));
 				_this.test_connection(popup);
 			},
 		});
+	}
+
+	format_text() {
+		const f = getRequestFormat();
+		const types = Object.keys(f.utility.taskTypes || {}).map((k) => k + ' as ' + f.utility.taskTypes[k]).join(', ');
+		return 'images: ' + f.imageInference.style + ', utilities: ' + f.utility.style + (types ? ' (' + types + ')' : '') + ' (default ' + INPUT_STYLE + ')';
+	}
+
+	/**
+	 * Diagnose request format: sends the cheapest image-input task (background removal of a
+	 * 128x128 PNG with runware:112@5, about $0.0006 per try) in both formats and remembers the one
+	 * that works. Mock mode simulates success.
+	 */
+	async diagnose() {
+		const c = document.createElement('canvas');
+		c.width = 128;
+		c.height = 128;
+		const g = c.getContext('2d');
+		g.fillStyle = '#d8e4f0';
+		g.fillRect(0, 0, 128, 128);
+		g.fillStyle = '#c0392b';
+		g.beginPath();
+		g.arc(64, 64, 36, 0, Math.PI * 2);
+		g.fill();
+		const image = c.toDataURL('image/png');
+		this.POP.show({
+			title: 'Diagnose Request Format',
+			params: [
+				{ title: 'Test:', html: '<span>Background removal of a 128x128 test image (runware:112@5) in both request formats. Up to 2 tiny requests, about $0.0006 each.</span>' },
+				{ title: 'Result:', html: '<span id="ai_diag_result">Running...</span>' },
+			],
+		});
+		const out = (text) => {
+			const target = document.getElementById('ai_diag_result');
+			if (target) target.innerHTML = text;
+		};
+		try {
+			const h = await health();
+			if (!h.hasKey && !h.mock) {
+				out('The proxy has no API key. Set RUNWARE_API_KEY and restart it (or run the proxy with --mock).');
+				return null;
+			}
+			const d = await diagnoseRequestFormat(image);
+			const lines = d.results.map((r) => '<b>' + r.style + '</b> (taskType ' + this.Helper.escapeHtml(r.taskType) + '): '
+				+ (r.ok ? 'works, ' + formatCost(r.cost) + ', ' + r.ms + ' ms' : 'failed: ' + this.Helper.escapeHtml(r.error || '')));
+			lines.push(d.working
+				? 'Using <b>' + d.working.style + '</b> from now on (remembered in this browser).' + (h.mock ? ' (mock mode)' : '')
+				: 'Neither format worked. Check the errors above.');
+			lines.push('Total cost: ' + formatCost(d.totalCost));
+			out(lines.join('<br>'));
+			session.cost += d.totalCost;
+			if (d.working) alertify.success('Request format: ' + d.working.style, 5);
+			return d;
+		} catch (error) {
+			out(this.Helper.escapeHtml(error.message || String(error)));
+			return null;
+		}
 	}
 
 	async test_connection(popup) {

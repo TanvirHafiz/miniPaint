@@ -185,3 +185,35 @@ test('computeOutpaint: random fuzz', () => {
 test('computeOutpaint rejects zero extension', () => {
 	assert.throws(() => computeOutpaint({ canvasW: 100, canvasH: 100 }));
 });
+
+import { pickSizePreset, buildPresetRequestRegion, planUpscale, wantsMaskMargin } from '../region-math.js';
+
+const KONTEXT = [[1568, 672], [1504, 688], [1456, 720], [1392, 752], [1328, 800], [1248, 832], [1184, 880], [1104, 944], [1024, 1024], [944, 1104], [880, 1184], [832, 1248], [800, 1328], [752, 1392], [720, 1456], [688, 1504], [672, 1568]];
+
+test('pickSizePreset picks the closest aspect', () => {
+	assert.deepEqual(pickSizePreset(KONTEXT, 1), { w: 1024, h: 1024 });
+	assert.deepEqual(pickSizePreset(KONTEXT, 1013 / 771), { w: 1184, h: 880 });
+	assert.deepEqual(pickSizePreset(KONTEXT, 16 / 9), { w: 1392, h: 752 });
+	assert.deepEqual(pickSizePreset(KONTEXT, 0.1), { w: 672, h: 1568 });
+	assert.deepEqual(pickSizePreset(KONTEXT, 3 / 2), { w: 1248, h: 832 });
+});
+
+test('buildPresetRequestRegion: send is a preset, crop contains region and stays in canvas', () => {
+	for (const region of [{ x: 0, y: 0, w: 1013, h: 771 }, { x: 900, y: 61, w: 113, h: 140 }, { x: 10, y: 10, w: 20, h: 300 }]) {
+		const r = buildPresetRequestRegion(region, 1013, 771, KONTEXT);
+		assert.ok(KONTEXT.some(([w, h]) => w === r.send.w && h === r.send.h));
+		assert.ok(contains(r.crop, region) && inCanvas(r.crop, 1013, 771), JSON.stringify(r));
+	}
+});
+
+test('planUpscale flags huge outputs and inputs', () => {
+	assert.deepEqual(planUpscale(1013, 771, 2), { factor: 2, outW: 2026, outH: 1542, tooLargeInput: false, needsConfirm: false });
+	assert.equal(planUpscale(2500, 1000, 4).needsConfirm, true);
+	assert.equal(planUpscale(5000, 1000, 2).tooLargeInput, true);
+	assert.equal(planUpscale(100, 100, 3).factor, 2);
+});
+
+test('wantsMaskMargin only for small selections', () => {
+	assert.equal(wantsMaskMargin({ x: 400, y: 300, w: 40, h: 40 }, { x: 300, y: 200, w: 240, h: 240 }, { w: 512, h: 512 }), true);
+	assert.equal(wantsMaskMargin({ x: 320, y: 220, w: 200, h: 200 }, { x: 300, y: 200, w: 240, h: 240 }, { w: 512, h: 512 }), false);
+});
