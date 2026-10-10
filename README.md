@@ -66,7 +66,9 @@ Open http://localhost:8080 (in Codespaces, open the forwarded port 8080). The de
 
 **Mock mode** (no key, no network): `npm run proxy:mock` or `npm run start:ai -- --mock` returns placeholder PNGs with cost 0. Add `RUNWARE_MOCK_DELAY_MS=3000` to test the loading and cancel (Escape) states.
 
-**Tests**: `npm run test:ai` (size snapping math, `node --test`).
+**Debug**: *AI > Debug: Export Region + Mask* adds the crop and mask that an inpaint request would send as layers (and offers the PNGs); *AI > Debug: Place Test Result* inverts the region locally and places it back like an AI result. Both use the current rectangle selection, or the whole canvas.
+
+**Tests**: `npm run test:ai` (size and region math, `node --test`).
 
 Project plan: `plan.md`. Code map: `docs/ARCHITECTURE-NOTES.md`.
 

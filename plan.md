@@ -176,10 +176,12 @@ Phase 0 findings for this section: hook the renderer inside `Base_layers_class.r
 - Dev server forwards `/api` to the proxy and blocks `/.git`, `/server`, `/node_modules`, `/docs`, `plan.md`, `package*.json` and dotfiles.
 - **Done when:** a Generate call from the UI places an image on a new layer and shows its cost. Done in mock mode (`RUNWARE_MOCK=1`); a live call needs a real key (see README "AI features").
 
-### Phase 2: Canvas I/O
+### Phase 2: Canvas I/O (DONE, branch phase-2-canvas-io)
 - Flatten, crop with padding, size snapping to 64, selection to mask, feather, place result back.
 - Unit-test the size math (snapping, outpaint dimensions).
-- **Done when:** a debug button exports image + mask PNGs that line up perfectly.
+- **Done when:** a debug button exports image + mask PNGs that line up perfectly. Done: AI > Debug: Export Region + Mask and Debug: Place Test Result; verified in headless Chromium on a 1013x771 document at 100% and 300% zoom (mask within 1 px of the selection, region pixels exact, outside pixels unchanged, one undo).
+- Decisions: padding 25% of the region's longer side; small crops upscaled so the long side is at least 512; send size snapped to 64 inside 128..2048 with the crop grown toward the send aspect; mask hard by default (feather option, outward); result clip feather 8 px inward (none on canvas edges); outpaint result on top masked to the new border plus a 24 px blend band, canvas growth via Update_config_action so Autoresize_canvas_action is not involved.
+- Code: `src/js/ai/canvas-io.js`, `region-math.js` (+ tests), `ai-debug.js`.
 
 ### Phase 3: AI panel
 - Docked panel: prompt box, verb buttons, Fast/Quality toggle, strength slider, variations count, model dropdown. The right sidebar is only 200 px wide; give the AI panel its own wider column (about 280 px) or a collapsible block, and stop keydown propagation inside it so editor shortcuts (N, D, S) do not fire.

@@ -756,6 +756,17 @@ const menuDefinition = [
 				name: 'Runware Settings / Test Connection',
 				ellipsis: true,
 				target: 'ai/ai.settings'
+			},
+			{
+				divider: true
+			},
+			{
+				name: 'Debug: Export Region + Mask',
+				target: 'ai/ai.debug_export'
+			},
+			{
+				name: 'Debug: Place Test Result',
+				target: 'ai/ai.debug_place'
 			}
 		]
 	},

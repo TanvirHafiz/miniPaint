@@ -314,3 +314,23 @@ Ordered by how soon they bite.
 - Core files touched: `config-menu.js` (AI menu), `webpack.config.js` (devServer), `package.json` (scripts, express). No changes to layer, render or undo code yet.
 - AI results use `Bundle_action('ai_generate', ...)` of `Insert_layer_action(..., false)` with explicit `width_original/height_original`, so a batch is one undo step (verified in a headless browser: Ctrl+Z removes all, Ctrl+Y restores).
 - The Generate dialog reuses `Dialog_class` but replaces the OK button's listener (clone and swap) so the dialog stays open while the request runs, and stops keydown propagation so editor shortcuts do not fire while typing.
+
+## AI canvas I/O (Phase 2)
+
+Files: `src/js/ai/canvas-io.js` (browser, uses `app`/`config`), `src/js/ai/region-math.js` (pure math, `node --test`), `src/js/ai/ai-debug.js` (debug menu actions). The helpers are also exposed as `window.AI_canvas_io` for the console and tests.
+
+Pipeline for an inpaint request:
+1. `getAiRegion()` reads `tools_modules.selection.object.selection` and normalizes it with `normalizeRect` (fix negative sizes, round edges, clamp to canvas, reject < 8 px). Call it when the user starts the action. `fullCanvasRegion()` is the fallback.
+2. `buildRequestRegion(region)` pads by 25% of the region's longer side, clamps to the canvas, picks a scale (long side >= 512, short side >= 128, nothing over 2048), snaps the send size to multiples of 64, then grows the crop (never shrinks it) toward the send aspect ratio so x and y scale almost the same.
+3. `flattenToCanvas({source})` renders all visible layers (or one layer) into a `config.WIDTH x config.HEIGHT` canvas through `convert_layers_to_canvas`, then restores ctx state. No selection overlay, grid, guides or rulers; zoom has no effect.
+4. `exportRegion(canvas, crop, send)` crops and scales to a PNG data URI. `buildMask(region, crop, send, {feather})` makes an opaque black PNG with the selection white in send space, using per-pixel coverage for anti-aliased edges; `feather` adds an outward ramp.
+5. `placeResult(image, crop, region, {feather, name})` scales the result back to crop size, bakes an inward soft clip (default 8 px, no feather on sides touching the canvas edge, capped at 1/4 of the short side) with `destination-in`, and inserts one layer at `crop.x, crop.y` in a `Bundle_action('ai_place_result')`.
+
+Outpaint: `computeOutpaint({top,right,bottom,left})` (canvas px) returns `seed` (snapped, scaled canvas), `outpaint` (send px, multiples of 64), `final` (= seed + outpaint, <= 2048), `ext` (canvas px actually added) and `newCanvas`. Send `exportOutpaintSeed(plan)` with `width/height = plan.final` and `outpaint = plan.outpaint`. `applyOutpaintCanvas(plan, result, {placement, blend})` is one `Bundle_action('ai_outpaint')`: `Prepare_canvas_action('undo')`, `Update_config_action({WIDTH, HEIGHT})`, one `Update_layer_action` per layer to shift x/y by `ext.left/ext.top`, `Prepare_canvas_action('do')`, then `Insert_layer_action` for the result. Growing through `Update_config_action` (the Image > Canvas Size pattern) skips `Autoresize_canvas_action` entirely, and the inserted layer matches the new canvas size, so the autoresize quirk never applies.
+
+Layering choice for outpaint: the result goes on top, masked to the new border plus a 24 px soft blend band into the original. Originals keep every pixel; hiding the AI layer shows the plain original on a bigger canvas. `placement: 'bottom'` instead puts the unmasked result under everything.
+
+Gotchas found while testing:
+- Escape in a popup also reaches the Selection tool's own document keydown handler, which clears the selection and records a `clear_selection` history step. Phase 3 should capture the region before opening any dialog and should not rely on the selection surviving Escape.
+- Resampling to the send size and back blurs 1 px detail (for example grid lines) in the placed result: well inside the selection the inverted test result had median error 0 and p95 about 29/255, all of it on grid lines. This is inherent to scaling; the crop pixels themselves export exactly (max diff 0).
+- The Information panel only refreshes the canvas size on mousemove (upstream behavior). `applyOutpaintCanvas` calls `show_size()` after applying.
