@@ -19,7 +19,7 @@ import config from '../config.js';
 import Helper_class from '../libs/helpers.js';
 import zoomView from '../libs/zoomView.js';
 import alertify from '../../../node_modules/alertifyjs/build/alertify.min.js';
-import { formatCost, RunwareError } from './runware-client.js';
+import { formatCost, RunwareError, health } from './runware-client.js';
 import { MODELS, MODEL_INFO, modelsForVerb } from './models.js';
 import { DEFAULTS, getAiRegion } from './canvas-io.js';
 import {
@@ -110,6 +110,7 @@ export class AI_panel_class {
 		this.add_toggle_button();
 		this.add_global_shortcuts();
 		updateStatusChip(() => this.show());
+		this.check_backend();
 		window.addEventListener('resize', () => this.apply_position(this.root.offsetLeft, this.root.offsetTop));
 	}
 
@@ -300,6 +301,37 @@ export class AI_panel_class {
 	}
 
 	/* ------------------------------------------------------------ verb and options */
+
+	/**
+	 * The AI verbs need the local proxy (npm run start:ai or the portable download). On a static host such as
+	 * the online demo there is none, so say so instead of failing on the first Run.
+	 */
+	async check_backend() {
+		try {
+			await health({ timeoutMs: 3000 });
+			this.demo = false;
+		} catch (e) {
+			this.demo = true;
+		}
+		this.show_demo_banner();
+		return !this.demo;
+	}
+
+	show_demo_banner() {
+		if (this.demoBanner) {
+			this.demoBanner.remove();
+			this.demoBanner = null;
+		}
+		if (!this.demo) return;
+		const link = el('a', { href: 'https://github.com/TanvirHafiz/miniPaint/releases/latest', target: '_blank', rel: 'noopener', text: 'Get the portable app' });
+		this.demoBanner = el('div', { class: 'ai_demo_banner' }, [
+			'The AI server is not reachable from this page, so the AI verbs are off. The editor, layer effects and mask tools work. ',
+			link,
+			' to use AI with your own Runware key.',
+		]);
+		const body = this.root.querySelector('.ai_panel_body');
+		body.insertBefore(this.demoBanner, body.firstChild);
+	}
 
 	toggle_history() {
 		const open = this.historyList.style.display === 'none';
@@ -588,6 +620,10 @@ export class AI_panel_class {
 
 	async run() {
 		if (this.running) return;
+		if (this.demo && !(await this.check_backend())) {
+			this.set_status('AI is off here: the AI server is not reachable (see the note at the top of the panel).', { error: true });
+			return;
+		}
 		const verb = this.verb;
 		const runner = RUNNERS[verb];
 		// Capture the selection NOW (it is cleared on tool change, layer click and Escape).

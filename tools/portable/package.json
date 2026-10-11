@@ -1,0 +1,9 @@
+{
+  "name": "minipaint-ai-portable",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Runtime dependencies of the portable miniPaint AI server",
+  "dependencies": {
+    "express": "^4.22.3"
+  }
+}

@@ -27,6 +27,8 @@ npm run test:ai             # node --test unit tests (size, region math, client 
 npm run build               # production bundle
 ```
 
+`npm run package` builds the portable zip in `release/` (see README, Try it); `node server/serve.js` serves the built app plus proxy on one port.
+
 Do not use `npm run server` (it passes `--open`). Open http://localhost:8080.
 
 ## Where things are

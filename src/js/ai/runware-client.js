@@ -18,7 +18,8 @@
 import { v4 as uuidv4 } from 'uuid';
 import { INPUT_STYLE, getModelInfo, taskTypeFor, taskKindOf, alternateTaskType } from './models.js';
 
-export const API_BASE = '/api';
+// Relative on purpose: works at the site root and when the app is hosted under a sub path.
+export const API_BASE = 'api';
 const DEFAULT_TIMEOUT_MS = 120000;
 const FORMAT_KEY = 'minipaint_ai_request_format';
 
