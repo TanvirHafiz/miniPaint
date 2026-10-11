@@ -1,0 +1,42 @@
+# Builds the portable zip and attaches it to a GitHub release when a version tag is pushed.
+#   git tag v0.1.0 && git push origin v0.1.0
+name: Release portable zip
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag to release (must already exist)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run test:ai
+      - name: Build the portable zip
+        run: node tools/package.js --version "$TAG"
+      - name: Create or update the release
+        run: |
+          FILE="release/miniPaint-AI-${TAG}-portable.zip"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$FILE" --clobber
+          else
+            gh release create "$TAG" "$FILE" --title "miniPaint AI $TAG" --generate-notes --notes "Download the portable zip below, unzip, and run start.bat (Windows) or ./start.sh (Mac and Linux). Needs Node.js 18 or newer and your own Runware API key. See README.txt inside the zip."
+          fi

@@ -194,3 +194,7 @@
 }
 .ai_status_chip:hover { color: var(--text-color); opacity: 1; }
 .ai_status_chip.ai_working { color: var(--text-color-active); border-color: var(--input-border-color-active, var(--border-color)); }
+
+/* Static demo notice */
+.ai_demo_banner { padding: 6px 8px; border-radius: 8px; font-size: 11.5px; line-height: 1.4; background: var(--mp-accent-weak, var(--background-color-active)); color: var(--text-color-active, var(--text-color)); }
+.ai_demo_banner a { color: inherit; font-weight: bold; }

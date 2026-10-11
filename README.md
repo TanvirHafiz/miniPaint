@@ -45,6 +45,15 @@ To embed this app on another page, use the following HTML code:
 ## Build instructions
 See [Wiki > Build instructions](https://github.com/viliusle/miniPaint/wiki/Build-instructions)
 
+## Try it
+- **Online demo (editor only, no AI):** https://tanvirhafiz.github.io/miniPaint/ . Layers, layer effects, mask tools and the light and dark themes work. The AI buttons are off because there is no server to hold an API key.
+- **Portable download (with AI):** get `miniPaint-AI-<version>-portable.zip` from the [latest release](https://github.com/TanvirHafiz/miniPaint/releases/latest), unzip, and run `start.bat` (Windows) or `./start.sh` (Mac and Linux). Needs [Node.js](https://nodejs.org) 18 or newer and your own [Runware](https://runware.ai) API key, which you paste into `server/.env` on first start. Run `start.bat --mock` to try the AI with fake, free results.
+
+**For maintainers**
+- Release: `git tag v0.1.0 && git push origin v0.1.0`. The *Release portable zip* workflow tests, builds `miniPaint-AI-v0.1.0-portable.zip` and attaches it to a new GitHub release.
+- Demo: every push to `master` redeploys the static demo through the *Deploy demo to GitHub Pages* workflow (repository Settings > Pages > Source: GitHub Actions).
+- Build the zip locally: `npm run package` (output in `release/`, never contains `server/.env`). Serve the built app plus proxy without webpack: `node server/serve.js`.
+
 ## AI features (Runware)
 This fork adds AI image generation through the [Runware](https://runware.ai) API. The browser never sees the API key: a small local proxy in `server/` adds it to each request.
 

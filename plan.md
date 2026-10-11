@@ -238,6 +238,14 @@ Phase 0 findings for this section: hook the renderer inside `Base_layers_class.r
 
 ---
 
+### Distribution (DONE, branch release-packaging)
+- Portable zip: `npm run package` (`tools/package.js`) stages the built editor, `server/` (index.js, mock.js, serve.js, .env.example), Express in `node_modules`, `start.bat`, `start.sh` and a README, then zips it. Users only need Node 18+. `server/serve.js` serves the editor and the proxy on one port and only exposes `index.html`, `dist/` and `images/`.
+- Release workflow `.github/workflows/release.yml`: pushing a `v*` tag runs the tests, builds the zip and creates the GitHub release.
+- Static demo `.github/workflows/pages.yml`: pushes to `master` deploy the editor to GitHub Pages. The AI client uses relative `api/...` URLs and the panel shows a notice when no proxy answers, so the demo says AI is off instead of failing.
+- Not done: a bundled Node binary (zip stays small), an Electron or Tauri app (section 12).
+
+---
+
 ## 10. Rules for Claude Code
 
 - Keep new code in `/src/js/ai/`, `/src/js/layer-effects/` and `/server/`. Touch core miniPaint files only where needed, with small, commented hooks.

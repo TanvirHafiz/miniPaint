@@ -19,3 +19,6 @@ nbproject/
 # miniPaint AI: local secrets
 /server/.env
 .env
+
+# portable packaging output
+/release/
