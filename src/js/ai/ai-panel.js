@@ -28,6 +28,8 @@ import {
 import { session } from './ai-generate.js';
 import { mask as maskStore } from './mask.js';
 import { build_mask_section } from './mask-ui.js';
+import { pushPrompt, stepIndex, loadHistory, saveHistory } from './ai-history.js';
+import { updateStatusChip } from './ai-status.js';
 
 const STATE_KEY = 'minipaint_ai_panel';
 const PANEL_WIDTH = 320;
@@ -74,6 +76,9 @@ export class AI_panel_class {
 		this.overlayEl = null;
 		this.overlayRegion = null;
 		this.overlayRaf = null;
+		this.history = loadHistory();
+		this.historyIndex = -1; // -1 = the box shows the user's own text
+		this.historyDraft = '';
 		this.last = null; // last verb result (for variations)
 		this.placed = new Set();
 		this.state = {
@@ -101,13 +106,32 @@ export class AI_panel_class {
 		this.set_collapsed(!!st.collapsed, false);
 		this.set_open(st.open !== false, false);
 		this.add_toggle_button();
+		this.add_global_shortcuts();
+		updateStatusChip(() => this.show());
 		window.addEventListener('resize', () => this.apply_position(this.root.offsetLeft, this.root.offsetTop));
 	}
 
 	build() {
 		this.prompt = el('textarea', { class: 'ai_prompt', placeholder: 'Describe what you want. Ctrl+Enter to run.', rows: 3 });
 		this.prompt.value = load_state().prompt || '';
-		this.prompt.addEventListener('input', () => save_state({ prompt: this.prompt.value }));
+		this.prompt.addEventListener('input', () => {
+			save_state({ prompt: this.prompt.value });
+			this.historyIndex = -1;
+		});
+		this.prompt.addEventListener('keydown', (e) => {
+			if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && this.history.length) {
+				e.preventDefault();
+				if (this.historyIndex === -1) this.historyDraft = this.prompt.value;
+				this.historyIndex = stepIndex(this.historyIndex, e.key === 'ArrowUp' ? -1 : 1, this.history.length);
+				this.prompt.value = this.historyIndex === -1 ? this.historyDraft : this.history[this.historyIndex];
+				save_state({ prompt: this.prompt.value });
+			}
+		});
+		this.historyButton = el('button', { type: 'button', class: 'ai_history_button', text: 'Recent', title: 'Recent prompts (Alt+Up and Alt+Down in the box)' });
+		this.historyList = el('div', { class: 'ai_history_list' });
+		this.historyList.style.display = 'none';
+		this.historyButton.addEventListener('click', () => this.toggle_history());
+		this.promptWrap = el('div', { class: 'ai_prompt_wrap' }, [this.prompt, this.historyButton, this.historyList]);
 
 		this.verbButtons = {};
 		const verbs = el('div', { class: 'ai_verbs' }, VERBS.map((v) => {
@@ -162,7 +186,7 @@ export class AI_panel_class {
 		this.maskSection = build_mask_section();
 
 		const body = el('div', { class: 'ai_panel_body' }, [
-			this.prompt,
+			this.promptWrap,
 			verbs,
 			this.maskSection,
 			presetRow,
@@ -274,6 +298,65 @@ export class AI_panel_class {
 	}
 
 	/* ------------------------------------------------------------ verb and options */
+
+	toggle_history() {
+		const open = this.historyList.style.display === 'none';
+		this.historyList.innerHTML = '';
+		if (!open) {
+			this.historyList.style.display = 'none';
+			return;
+		}
+		if (!this.history.length) {
+			this.historyList.appendChild(el('div', { class: 'ai_history_empty', text: 'No prompts yet.' }));
+		}
+		for (const text of this.history) {
+			const item = el('div', { class: 'ai_history_item', text, title: text });
+			item.addEventListener('click', () => {
+				this.prompt.value = text;
+				save_state({ prompt: text });
+				this.historyList.style.display = 'none';
+				this.prompt.focus();
+			});
+			this.historyList.appendChild(item);
+		}
+		if (this.history.length) {
+			const clear = el('div', { class: 'ai_history_item ai_history_clear', text: 'Clear history' });
+			clear.addEventListener('click', () => {
+				this.history = [];
+				saveHistory(this.history);
+				this.historyList.style.display = 'none';
+			});
+			this.historyList.appendChild(clear);
+		}
+		this.historyList.style.display = 'block';
+	}
+
+	remember_prompt(text) {
+		this.history = pushPrompt(this.history, text);
+		saveHistory(this.history);
+		this.historyIndex = -1;
+	}
+
+	/** Ctrl+Enter anywhere runs the current verb; Ctrl+Shift+E jumps to Edit. Keys inside the panel are handled there. */
+	add_global_shortcuts() {
+		document.addEventListener('keydown', (e) => {
+			if (this.root.contains(e.target)) return;
+			const mod = e.ctrlKey || e.metaKey;
+			if (!mod) return;
+			const t = e.target;
+			if (t && (this.Helper.is_input(t) || t.tagName === 'SELECT')) return;
+			if (e.key === 'Enter') {
+				e.preventDefault();
+				this.show();
+				this.run();
+			} else if (e.shiftKey && e.key.toLowerCase() === 'e') {
+				e.preventDefault();
+				this.show();
+				this.set_verb('edit');
+				this.prompt.focus();
+			}
+		});
+	}
 
 	set_verb(verb, save = true) {
 		if (!RUNNERS[verb]) verb = 'generate';
@@ -432,6 +515,7 @@ export class AI_panel_class {
 	}
 
 	update_session() {
+		updateStatusChip(() => this.show(), this.running ? VERB_LABELS[this.verb] : null);
 		this.sessionLine.textContent = 'Session: ' + formatCost(session.cost) + ' (' + session.generations + ' request' + (session.generations === 1 ? '' : 's') + ')';
 	}
 
@@ -441,6 +525,7 @@ export class AI_panel_class {
 		this.cancelButton.disabled = !running;
 		for (const v of VERBS) this.verbButtons[v].disabled = running;
 		this.runButton.textContent = running ? 'Working...' : 'Run ' + VERB_LABELS[this.verb];
+		updateStatusChip(() => this.show(), running ? VERB_LABELS[this.verb] : null);
 	}
 
 	/* ------------------------------------------------------------ overlay */
@@ -525,6 +610,7 @@ export class AI_panel_class {
 			return;
 		}
 
+		this.remember_prompt(opts.prompt);
 		this.thumbs.innerHTML = '';
 		this.last = null;
 		this.placed = new Set();

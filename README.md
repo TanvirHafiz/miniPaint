@@ -62,10 +62,10 @@ npx webpack serve --mode development --env development --no-open
 ```
 Open http://localhost:8080 (in Codespaces, open the forwarded port 8080). The dev server forwards `/api/*` to the proxy.
 
-**3. Use the AI panel.** It floats over the canvas (drag it by its title, collapse with `_`, hide with `x`; the **AI** button in the top bar or *AI > Show / Hide AI Panel* brings it back). Type a prompt, pick a verb tab, press **Run** (or Ctrl+Enter). Draw a rectangle with the Select tool first when a verb works on a region.
+**3. Use the AI panel.** It floats over the canvas (drag it by its title, collapse with `_`, hide with `x`; the **AI** button in the top bar or *AI > Show / Hide AI Panel* brings it back). Type a prompt, pick a verb tab, press **Run** (or Ctrl+Enter). Mark the area first when a verb works on a region: draw a rectangle with the Select tool, or use the **Mask** section (see below).
 - **Generate**: new image from the prompt at canvas size, as a new layer.
-- **Inpaint**: repaints only the rectangle selection from the prompt (FLUX Fill). Needs a selection.
-- **Edit**: instruction edit ("make the jacket red"). With a selection only that area changes, otherwise the whole image.
+- **Inpaint**: repaints only the mask or rectangle selection from the prompt (FLUX Fill). Needs a mask or selection.
+- **Edit**: instruction edit ("make the jacket red"). With a mask or selection only that area changes, otherwise the whole image.
 - **Outpaint**: extends the canvas on the chosen sides by N px and fills the new border. Prompt optional.
 - **Remove BG**: cut-out of the active layer (or the whole image) as a new transparent layer; "Hide original" is one click.
 - **Upscale**: 2x or 4x of the whole image. The canvas and every layer scale up and the upscaled image is added on top (one undo); "Download PNG" is offered too.
@@ -79,7 +79,24 @@ Every result is a new layer named `AI <verb>: <prompt>` and one Ctrl+Z removes i
 
 **Debug**: *AI > Debug: Export Region + Mask* adds the crop and mask that an inpaint request would send as layers (and offers the PNGs); *AI > Debug: Place Test Result* inverts the region locally and places it back like an AI result. Both use the current rectangle selection, or the whole canvas.
 
-**Tests**: `npm run test:ai` (size and region math, `node --test`).
+**Mask tools** (AI panel > Mask). Free-form areas for Inpaint and Edit, shown as a red overlay. Tools: Rect, Lasso, Polygon (click points, Enter or double-click to close, Esc cancels), Ellipse, Wand (tolerance, contiguous), Brush and Eraser (`[` and `]` change the size). Modes: New, Add, Subtract (Shift adds, Alt subtracts). Actions: Invert, Feather, Grow, Shrink (by the Amount in px), Clear, From select, Undo. When a mask exists Inpaint and Edit use it instead of the rectangle, and the result layer is clipped to it. Ctrl+Z undoes the mask while a mask tool is active. The mask clears when the document size changes.
+
+**Layer effects.** Layer > Layer Style... (or the **fx** button on a layer row) opens a live preview dialog with Drop Shadow, Outer Glow, Inner Shadow, Stroke (outside, inside, center) and Bevel & Emboss. Effects are non-destructive, saved in the JSON project file, and one Ctrl+Z undoes a dialog edit. Layer > Copy / Paste / Clear Layer Style move a style between layers.
+
+**Themes.** The default look is the Studio theme in dark and light. *View > Toggle Light / Dark Theme* switches and remembers the choice; the older green theme is still in Tools > Settings.
+
+**Shortcuts**
+| Keys | Action |
+| --- | --- |
+| Ctrl+Enter | Run the current AI verb (works anywhere, and inside the panel) |
+| Ctrl+Shift+E | Switch to Edit and focus the prompt box |
+| Alt+Up / Alt+Down in the prompt box | Step through recent prompts (also the **Recent** button) |
+| Esc in the panel | Cancel a running request |
+| `[` and `]` with Brush or Eraser | Brush size |
+
+The last 30 prompts are remembered in the browser. A small chip in the bottom left of the editor shows the AI cost for this session and a working indicator; click it to show the panel.
+
+**Tests**: `npm run test:ai` (size and region math, client fallback, layer effects math, mask math, prompt history; `node --test`).
 
 Project plan: `plan.md`. Code map: `docs/ARCHITECTURE-NOTES.md`.
 

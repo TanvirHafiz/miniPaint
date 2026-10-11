@@ -170,3 +170,27 @@
 .ai_mask_amount { width: 70px; }
 .ai_mask_hint { font-size: 11px; color: var(--text-color-muted, #c1c1c1); }
 .ai_mask_overlay { touch-action: none; }
+
+/* Prompt history and status chip (Phase 6) */
+.ai_prompt_wrap { position: relative; }
+.ai_history_button {
+	position: absolute; right: 6px; bottom: 8px; padding: 1px 7px; font-size: 11px;
+	opacity: 0.85; border-radius: 6px;
+}
+.ai_history_list {
+	position: absolute; left: 0; right: 0; top: 100%; z-index: 5; max-height: 190px; overflow-y: auto;
+	background: var(--menu-dropdown-background-color, var(--block-background-color));
+	border: 1px solid var(--border-color); border-radius: 8px; box-shadow: var(--mp-shadow, 0 6px 20px rgba(0,0,0,.35)); padding: 4px;
+}
+.ai_history_item { padding: 4px 8px; border-radius: 6px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ai_history_item:hover { background: var(--menu-dropdown-hover-background-color, var(--background-color-hover)); }
+.ai_history_clear { color: var(--text-color-muted); border-top: 1px solid var(--border-color); border-radius: 0 0 6px 6px; margin-top: 3px; }
+.ai_history_empty { padding: 4px 8px; color: var(--text-color-muted); }
+.ai_status_chip {
+	position: fixed; left: 54px; bottom: 10px; z-index: 30; padding: 3px 10px; border-radius: 999px;
+	font-size: 11px; cursor: pointer; user-select: none;
+	background: var(--block-background-color); color: var(--text-color-muted); border: 1px solid var(--border-color);
+	opacity: 0.9;
+}
+.ai_status_chip:hover { color: var(--text-color); opacity: 1; }
+.ai_status_chip.ai_working { color: var(--text-color-active); border-color: var(--input-border-color-active, var(--border-color)); }
