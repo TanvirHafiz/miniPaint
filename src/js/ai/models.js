@@ -126,8 +126,10 @@ export const MODEL_INFO = {
 		supportsMaskMargin: true,
 		caps: { textToImage: false, edit: false, inpaint: true, outpaint: true, removeBg: false, upscale: false, erase: false },
 		size: SIZE_64,
-		defaults: { steps: 20 },
-		limits: { maskMargin: [32, 128], strength: [0, 1], outpaintBlur: [0, 32], outpaintMultiple: 64 },
+		// CFGScale 20 (the schema maximum): without it FLUX Fill barely follows the prompt and returns noisy blobs.
+		// Live test 2026-10: strength 0.8 (Runware default) or lower keeps the original pixels, so inpaint sends 1 by default.
+		defaults: { steps: 20, CFGScale: 20 },
+		limits: { maskMargin: [32, 128], strength: [0, 1], outpaintBlur: [0, 32], outpaintMultiple: 64, CFGScale: [0, 20] },
 		required: ['positivePrompt', 'width', 'height', 'model'],
 		note: 'Inpaint (inputs.seedImage + inputs.maskImage, white = edit) and outpaint. strength or maskImage requires seedImage.',
 	},
