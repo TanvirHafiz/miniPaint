@@ -45,6 +45,44 @@ To embed this app on another page, use the following HTML code:
 ## Build instructions
 See [Wiki > Build instructions](https://github.com/viliusle/miniPaint/wiki/Build-instructions)
 
+## AI features (Runware)
+This fork adds AI image generation through the [Runware](https://runware.ai) API. The browser never sees the API key: a small local proxy in `server/` adds it to each request.
+
+**1. Provide the key** (one of):
+- GitHub Codespaces: add a Codespaces secret named `RUNWARE_API_KEY` (GitHub > Settings > Codespaces > Secrets, allow this repository), then rebuild or restart the Codespace.
+- Local: `cp server/.env.example server/.env` and set `RUNWARE_API_KEY=...` (the file is gitignored). An environment variable wins over the file.
+
+**2. Run**
+```
+npm install
+npm run start:ai        # proxy (port 8787) + dev server (port 8080) together
+# or in two terminals:
+npm run proxy
+npx webpack serve --mode development --env development --no-open
+```
+Open http://localhost:8080 (in Codespaces, open the forwarded port 8080). The dev server forwards `/api/*` to the proxy.
+
+**3. Use the AI panel.** It floats over the canvas (drag it by its title, collapse with `_`, hide with `x`; the **AI** button in the top bar or *AI > Show / Hide AI Panel* brings it back). Type a prompt, pick a verb tab, press **Run** (or Ctrl+Enter). Draw a rectangle with the Select tool first when a verb works on a region.
+- **Generate**: new image from the prompt at canvas size, as a new layer.
+- **Inpaint**: repaints only the rectangle selection from the prompt (FLUX Fill). Needs a selection.
+- **Edit**: instruction edit ("make the jacket red"). With a selection only that area changes, otherwise the whole image.
+- **Outpaint**: extends the canvas on the chosen sides by N px and fills the new border. Prompt optional.
+- **Remove BG**: cut-out of the active layer (or the whole image) as a new transparent layer; "Hide original" is one click.
+- **Upscale**: 2x or 4x of the whole image. The canvas and every layer scale up and the upscaled image is added on top (one undo); "Download PNG" is offered too.
+- **Fast / Quality** picks the preset model; **Advanced** has the model list, strength (Inpaint), 1 to 4 variations (pick one from the thumbnails or Place all) and the edge feather.
+
+Every result is a new layer named `AI <verb>: <prompt>` and one Ctrl+Z removes it. The status line shows time and cost, plus a session total. **Cancel** (or Escape in the panel) stops a running request.
+
+**With a real key, run *AI > Diagnose Request Format* once.** It sends two tiny background-removal requests (about $0.0006 each), finds which Runware request format your account accepts and remembers it in the browser. The client also falls back automatically, but diagnosing first avoids a failed first request. *AI > Runware Settings / Test Connection* checks the proxy and the key and can reset the remembered format.
+
+**Mock mode** (no key, no network): `npm run proxy:mock` or `npm run start:ai -- --mock` returns plausible fake results for every verb (color-shifted region for inpaint and edit, transparent border for Remove BG, scaled image for Upscale) with cost 0. `RUNWARE_MOCK_DELAY_MS=3000` adds latency to try Cancel; `RUNWARE_MOCK_REJECT_STYLE=inputs` makes the mock reject one request format so the fallback can be seen.
+
+**Debug**: *AI > Debug: Export Region + Mask* adds the crop and mask that an inpaint request would send as layers (and offers the PNGs); *AI > Debug: Place Test Result* inverts the region locally and places it back like an AI result. Both use the current rectangle selection, or the whole canvas.
+
+**Tests**: `npm run test:ai` (size and region math, `node --test`).
+
+Project plan: `plan.md`. Code map: `docs/ARCHITECTURE-NOTES.md`.
+
 ## Wiki
 See [Wiki](https://github.com/viliusle/miniPaint/wiki)
 

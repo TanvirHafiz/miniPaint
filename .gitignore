@@ -15,3 +15,7 @@ nbproject/
 /node_modules/
 *.js.ignore
 
+
+# miniPaint AI: local secrets
+/server/.env
+.env

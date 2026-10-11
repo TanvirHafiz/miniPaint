@@ -1,0 +1,55 @@
+/* miniPaint Layer Style dialog. Uses miniPaint theme variables. */
+
+.layer_style {
+	position: fixed;
+	z-index: 60;
+	top: 70px;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 340px;
+	max-height: calc(100vh - 100px);
+	display: flex;
+	flex-direction: column;
+	background: var(--block-background-color, #464d4f);
+	color: var(--text-color, #f4f3f3);
+	border: 1px solid var(--border-color, #727677);
+	border-radius: 6px;
+	box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+	font-size: 13px;
+}
+.layer_style * { box-sizing: border-box; }
+.layer_style .ls_head { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--border-color, #727677); font-weight: bold; }
+.layer_style .ls_x { background: none; border: none; color: inherit; font-size: 18px; cursor: pointer; }
+.layer_style .ls_body { overflow-y: auto; padding: 6px 10px; }
+.layer_style .ls_sec { padding: 6px 0; border-bottom: 1px solid var(--border-color, #727677); }
+.layer_style .ls_title { display: block; font-weight: bold; margin-bottom: 4px; cursor: pointer; }
+.layer_style .ls_sec.off .ls_fields { display: none; }
+.layer_style .ls_row { display: flex; align-items: center; gap: 8px; margin: 3px 0; }
+.layer_style .ls_row > span { width: 110px; flex: none; }
+.layer_style .ls_row input[type=range] { flex: 1; min-width: 0; }
+.layer_style .ls_row output { width: 34px; text-align: right; flex: none; }
+.layer_style .ls_row input[type=color] { width: 48px; height: 22px; padding: 0; }
+.layer_style .ls_foot { display: flex; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--border-color, #727677); }
+.layer_style .ls_sp { flex: 1; }
+
+/* fx button on the layer row */
+.layers_list .item.fxrow .layer_name { width: calc(100% - 66px); }
+.layers_list .item.fxrow.shorter .layer_name { width: calc(100% - 85px); }
+.layers_list .layer_fx {
+	float: right;
+	width: 20px;
+	height: 19px;
+	margin-left: 2px;
+	padding: 0;
+	font-size: 10px;
+	font-style: italic;
+	line-height: 17px;
+	cursor: pointer;
+	opacity: 0.45;
+	background: transparent;
+	color: var(--text-color);
+	border: 1px solid var(--border-color);
+	border-radius: 3px;
+	box-shadow: none;
+}
+.layers_list .layer_fx.on { opacity: 1; background: var(--background-color-active); color: var(--text-color-active); }

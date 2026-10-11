@@ -162,6 +162,10 @@ const menuDefinition = [
 				]
 			},
 			{
+				name: 'Toggle Light / Dark Theme',
+				target: 'view/theme.toggle'
+			},
+			{
 				name: 'Grid',
 				shortcut: 'G',
 				target: 'view/grid.grid'
@@ -317,6 +321,25 @@ const menuDefinition = [
 			{
 				name: 'Convert to Raster',
 				target: 'layer/raster.raster'
+			},
+			{
+				divider: true
+			},
+			{
+				name: 'Layer Style...',
+				target: 'layer/style.open'
+			},
+			{
+				name: 'Copy Layer Style',
+				target: 'layer/style.copy'
+			},
+			{
+				name: 'Paste Layer Style',
+				target: 'layer/style.paste'
+			},
+			{
+				name: 'Clear Layer Style',
+				target: 'layer/style.clear'
 			},
 			{
 				divider: true
@@ -737,6 +760,45 @@ const menuDefinition = [
 				name: 'Settings',
 				ellipsis: true,
 				target: 'tools/settings.settings'
+			}
+		]
+	},
+	// miniPaint AI: Runware menu (module: src/js/modules/ai/ai.js)
+	{
+		name: 'AI',
+		children: [
+			{
+				name: 'Show / Hide AI Panel',
+				target: 'ai/ai.panel'
+			},
+			{
+				name: 'Quick Generate',
+				ellipsis: true,
+				target: 'ai/ai.generate'
+			},
+			{
+				divider: true
+			},
+			{
+				name: 'Runware Settings / Test Connection',
+				ellipsis: true,
+				target: 'ai/ai.settings'
+			},
+			{
+				name: 'Diagnose Request Format',
+				ellipsis: true,
+				target: 'ai/ai.diagnose'
+			},
+			{
+				divider: true
+			},
+			{
+				name: 'Debug: Export Region + Mask',
+				target: 'ai/ai.debug_export'
+			},
+			{
+				name: 'Debug: Place Test Result',
+				target: 'ai/ai.debug_place'
 			}
 		]
 	},

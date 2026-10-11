@@ -54,6 +54,7 @@ export class Insert_layer_action extends Base_action {
 			status: null,
 			color: config.COLOR,
 			filters: [],
+			effects: [], // miniPaint AI: layer effects (src/js/layer-effects/)
 			render_function: null,
 		};
 
