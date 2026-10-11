@@ -158,3 +158,15 @@
 }
 @keyframes ai_shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 @keyframes ai_pulse { from { border-color: rgba(255, 255, 255, 0.95); } to { border-color: rgba(120, 220, 140, 0.95); } }
+
+/* Mask section (Phase 5) */
+.ai_mask { border: 1px solid var(--border-color, #727677); border-radius: 8px; overflow: hidden; }
+.ai_mask_header { display: flex; justify-content: space-between; align-items: center; padding: 5px 8px; cursor: pointer; font-weight: bold; }
+.ai_mask_status { font-weight: normal; font-size: 11px; color: var(--text-color-muted, #c1c1c1); }
+.ai_mask_has .ai_mask_status { color: #e83c3c; }
+.ai_mask_body { display: flex; flex-direction: column; gap: 6px; padding: 6px 8px 8px; border-top: 1px solid var(--border-color, #727677); }
+.ai_mask_tools { display: flex; flex-wrap: wrap; gap: 4px; }
+.ai_mask_tools .ai_chip { padding: 3px 7px; }
+.ai_mask_amount { width: 70px; }
+.ai_mask_hint { font-size: 11px; color: var(--text-color-muted, #c1c1c1); }
+.ai_mask_overlay { touch-action: none; }

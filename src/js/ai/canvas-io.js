@@ -157,6 +157,7 @@ export function buildMask(region, crop, send, opts = {}) {
 
 /** Same as buildMask but returns the canvas. */
 export function buildMaskCanvas(region, crop, send, opts = {}) {
+	if (opts.mask) return build_free_mask_canvas(opts.mask, crop, send);
 	const feather = opts.feather !== undefined ? opts.feather : DEFAULTS.maskFeather;
 	const r = mapRectToSend(region, crop, send);
 	const fx = feather * (send.w / crop.w);
@@ -180,6 +181,28 @@ export function buildMaskCanvas(region, crop, send, opts = {}) {
 	}
 	ctx.putImageData(img, 0, 0);
 	return out;
+}
+
+/**
+ * Inpaint mask from a free-form AI mask (document sized canvas, white with alpha): opaque black with the
+ * mask crop scaled into send space, so white = the masked area and soft edges stay soft.
+ */
+function build_free_mask_canvas(maskCanvas, crop, send) {
+	const out = make_canvas(send.w, send.h);
+	const ctx = out.getContext('2d');
+	ctx.fillStyle = '#000';
+	ctx.fillRect(0, 0, send.w, send.h);
+	ctx.imageSmoothingEnabled = true;
+	ctx.imageSmoothingQuality = 'high';
+	ctx.drawImage(maskCanvas, crop.x, crop.y, crop.w, crop.h, 0, 0, send.w, send.h);
+	return out;
+}
+
+/** Canvas (crop.w x crop.h) holding the part of a free-form mask inside the crop; alpha = mask. */
+function free_clip_canvas(maskCanvas, crop) {
+	const c = make_canvas(crop.w, crop.h);
+	c.getContext('2d').drawImage(maskCanvas, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
+	return c;
 }
 
 /**
@@ -227,7 +250,12 @@ export async function buildResultLayerSettings(resultImage, crop, region, opts =
 	ctx.imageSmoothingEnabled = true;
 	ctx.imageSmoothingQuality = 'high';
 	ctx.drawImage(img, 0, 0, crop.w, crop.h);
-	if (region) {
+	if (opts.mask) {
+		// Free-form mask (Phase 5): the result only shows where the mask is.
+		ctx.globalCompositeOperation = 'destination-in';
+		ctx.drawImage(free_clip_canvas(opts.mask, crop), 0, 0);
+		ctx.globalCompositeOperation = 'source-over';
+	} else if (region) {
 		ctx.globalCompositeOperation = 'destination-in';
 		ctx.drawImage(clip_alpha_canvas(region, crop, feather), 0, 0);
 		ctx.globalCompositeOperation = 'source-over';

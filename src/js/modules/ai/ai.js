@@ -8,6 +8,8 @@ import AI_generate_class from './../../ai/ai-generate.js';
 import AI_debug_class from './../../ai/ai-debug.js';
 import AI_panel_class from './../../ai/ai-panel.js';
 import * as canvas_io from './../../ai/canvas-io.js';
+import { mask as ai_mask } from './../../ai/mask.js';
+import { editor as mask_editor } from './../../ai/mask-editor.js';
 
 class AI_module_class {
 
@@ -18,6 +20,7 @@ class AI_module_class {
 		// Console and test access to the canvas I/O helpers and the panel.
 		window.AI_canvas_io = canvas_io;
 		window.AI_panel = this.AI_panel;
+		window.AI_mask = { mask: ai_mask, editor: mask_editor };
 		// Modules are created before the GUI renders; build the panel once the page is ready.
 		if (document.readyState === 'complete') {
 			setTimeout(() => this.AI_panel.init(), 0);
