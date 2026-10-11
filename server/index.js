@@ -132,7 +132,7 @@ app.post('/api/runware', async (req, res) => {
 	const key = get_key();
 	if (!key) {
 		console.log(`[runware] rejected ${summary}: no API key configured`);
-		return res.status(500).json({ errors: [{ code: 'missingApiKey', message: 'RUNWARE_API_KEY is not set on the proxy. Set it as an environment variable (or Codespaces secret), or in server/.env, then restart the proxy. Or run with RUNWARE_MOCK=1.' }] });
+		return res.status(500).json({ errors: [{ code: 'missingApiKey', message: 'No Runware API key found. Put your key in server/.env as RUNWARE_API_KEY=your-key and restart the app (Codespaces: use a secret named RUNWARE_API_KEY). To try the AI with fake, free results, start it with --mock.' }] });
 	}
 
 	const controller = new AbortController();
