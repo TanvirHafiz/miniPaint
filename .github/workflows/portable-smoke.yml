@@ -36,15 +36,20 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - name: Extract the zip into a fresh folder (path with a space)
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           mkdir -p "$RUNNER_TEMP/clean test"
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            tar -xf release/miniPaint-AI-vsmoke-portable.zip -C "$RUNNER_TEMP/clean test"
-          else
-            unzip -q release/miniPaint-AI-vsmoke-portable.zip -d "$RUNNER_TEMP/clean test"
-          fi
+          unzip -q release/miniPaint-AI-vsmoke-portable.zip -d "$RUNNER_TEMP/clean test"
           echo "APP_DIR=$RUNNER_TEMP/clean test/miniPaint-AI-vsmoke-portable" >> "$GITHUB_ENV"
+      - name: Extract the zip into a fresh folder (path with a space, Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP "clean test"
+          New-Item -ItemType Directory -Path $dir | Out-Null
+          Expand-Archive -Path release/miniPaint-AI-vsmoke-portable.zip -DestinationPath $dir
+          "APP_DIR=$dir\miniPaint-AI-vsmoke-portable" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
       - name: Run the launcher and check it
         shell: bash
         run: node tools/smoke-portable.js "$APP_DIR"
