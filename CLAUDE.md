@@ -8,11 +8,12 @@ A fork of miniPaint (plain JavaScript, HTML5 canvas, webpack, jQuery) turned int
 
 ## Current status
 
-- Phases 0 to 5 are done (Phase 7 UI redesign has a first pass) (see `plan.md`, section 9). Each phase is on its own stacked branch: `phase-0-recon` -> `phase-1-runware` -> `phase-2-canvas-io` -> `phase-3-ai-panel` -> `phase-4-layer-effects` -> `phase-7-ui-redesign` -> `phase-5-selection`. The latest branch contains everything.
+- Phases 0 to 6 are done (Phase 7 UI redesign has a first pass) (see `plan.md`, section 9). Each phase is on its own stacked branch: `phase-0-recon` -> `phase-1-runware` -> `phase-2-canvas-io` -> `phase-3-ai-panel` -> `phase-4-layer-effects` -> `phase-7-ui-redesign` -> `phase-5-selection` -> `phase-6-polish`. The latest branch contains everything.
 - Live with a real key, the owner has confirmed **Generate (text to image) works**.
 - Image-input verbs (Inpaint, Edit, Outpaint, Remove BG, Upscale) are confirmed working live. Runware's REST docs put image inputs at the task root but the model schemas nest them under `inputs`; the client defaults to `inputs`, falls back once on a validation error and remembers the result in localStorage. **AI > Diagnose Request Format** re-checks it cheaply on a new machine.
 - Phase 5 added the AI mask (`src/js/ai/mask*.js`): free-form selection tools that Inpaint and Edit use instead of the rectangle. Phase 7 first pass added `src/css/modern.css` (dark and light).
-- Next: Phase 6 (polish), the rest of Phase 7 (see `plan.md`), optional Select Subject.
+- Phase 6 added Ctrl+Enter and Ctrl+Shift+E shortcuts, prompt history and a session cost chip.
+- Next: the rest of Phase 7 (see `plan.md`), README screenshots, optional Select Subject.
 
 ## Run it
 
