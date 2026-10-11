@@ -52,6 +52,7 @@ See [Wiki > Build instructions](https://github.com/viliusle/miniPaint/wiki/Build
 **For maintainers**
 - Release: `git tag v0.1.0 && git push origin v0.1.0`. The *Release portable zip* workflow tests, builds `miniPaint-AI-v0.1.0-portable.zip` and attaches it to a new GitHub release.
 - Demo: every push to `master` redeploys the static demo through the *Deploy demo to GitHub Pages* workflow (repository Settings > Pages > Source: GitHub Actions).
+- CI: the *Portable smoke test* workflow builds the zip, extracts it, starts the real launcher (`start.sh` or `start.bat`) in mock mode and checks the editor, API and hidden paths on Ubuntu (Node 18 and 22), macOS and Windows for every PR and before every release. Run it locally with `node tools/smoke-portable.js <extracted folder>`.
 - Build the zip locally: `npm run package` (output in `release/`, never contains `server/.env`). Serve the built app plus proxy without webpack: `node server/serve.js`.
 
 ## Screenshots

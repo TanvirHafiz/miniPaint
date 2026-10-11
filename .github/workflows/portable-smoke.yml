@@ -1,0 +1,55 @@
+# Builds the portable zip, extracts it like a user would, starts the real launcher and checks it.
+# Runs on Linux, macOS and Windows for every PR and push to master, and before every release.
+name: Portable smoke test
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, node: 18 }
+          - { os: ubuntu-latest, node: 22 }
+          - { os: macos-latest, node: 22 }
+          - { os: windows-latest, node: 22 }
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.os }} / Node ${{ matrix.node }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build the portable zip
+        run: node tools/package.js --version vsmoke
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Extract the zip into a fresh folder (path with a space)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/clean test"
+          unzip -q release/miniPaint-AI-vsmoke-portable.zip -d "$RUNNER_TEMP/clean test"
+          echo "APP_DIR=$RUNNER_TEMP/clean test/miniPaint-AI-vsmoke-portable" >> "$GITHUB_ENV"
+      - name: Extract the zip into a fresh folder (path with a space, Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP "clean test"
+          New-Item -ItemType Directory -Path $dir | Out-Null
+          Expand-Archive -Path release/miniPaint-AI-vsmoke-portable.zip -DestinationPath $dir
+          "APP_DIR=$dir\miniPaint-AI-vsmoke-portable" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Run the launcher and check it
+        shell: bash
+        run: node tools/smoke-portable.js "$APP_DIR"
