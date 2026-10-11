@@ -226,7 +226,7 @@ Phase 0 findings for this section: hook the renderer inside `Base_layers_class.r
 - Clean dark theme.
 - README with setup steps and screenshots.
 
-**Phase 6 status: DONE (branch phase-6-polish).** Global Ctrl+Enter (run) and Ctrl+Shift+E (Edit), prompt history (last 30, Recent button, Alt+Up/Down; `ai-history.js`, unit tested), session cost chip in the bottom left (`ai-status.js`; the layout has no status bar so it is a fixed chip), README updated for mask tools, effects, themes and shortcuts. The dark theme item moved to Phase 7. README screenshots are still to be added by the owner (the in-app browser could not produce good ones).
+**Phase 6 status: DONE (branch phase-6-polish).** Global Ctrl+Enter (run) and Ctrl+Shift+E (Edit), prompt history (last 30, Recent button, Alt+Up/Down; `ai-history.js`, unit tested), session cost chip in the bottom left (`ai-status.js`; the layout has no status bar so it is a fixed chip), README updated for mask tools, effects, themes and shortcuts. The dark theme item moved to Phase 7. README screenshots were added later in `docs/screenshots/` (made with headless Chrome against the live API).
 
 ### Phase 7: Modern UI redesign (requested, do after Phase 6)
 - Redesign the whole editor interface to look modern: new theme tokens (CSS variables) with dark and light modes, refreshed top menu, toolbar icons, sidebar panels, dialogs, layer list and the AI panel and Layer Style dialog, consistent spacing, type and motion.

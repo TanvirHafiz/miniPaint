@@ -54,6 +54,21 @@ See [Wiki > Build instructions](https://github.com/viliusle/miniPaint/wiki/Build
 - Demo: every push to `master` redeploys the static demo through the *Deploy demo to GitHub Pages* workflow (repository Settings > Pages > Source: GitHub Actions).
 - Build the zip locally: `npm run package` (output in `release/`, never contains `server/.env`). Serve the built app plus proxy without webpack: `node server/serve.js`.
 
+## Screenshots
+A free-form mask (Ellipse tool, red overlay) marks where an AI edit may happen:
+
+![Mask tools in the AI panel, dark theme](docs/screenshots/1-mask.jpg)
+
+Inpaint with the prompt "a single ripe green pear lying on the table": only the masked area changes, the result is a new layer, the cost is shown, and one Ctrl+Z removes it:
+
+![Inpaint result, dark theme](docs/screenshots/2-inpaint-result.jpg)
+
+Non-destructive layer effects (drop shadow, stroke and bevel on a text layer) in the Layer Style dialog, light theme:
+
+![Layer Style dialog, light theme](docs/screenshots/3-layer-effects-light.jpg)
+
+The pictures were made with the app itself against the real Runware API (Generate for the apple, Inpaint for the pear, about $0.003 in total).
+
 ## AI features (Runware)
 This fork adds AI image generation through the [Runware](https://runware.ai) API. The browser never sees the API key: a small local proxy in `server/` adds it to each request.
 

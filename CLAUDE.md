@@ -14,7 +14,7 @@ A fork of miniPaint (plain JavaScript, HTML5 canvas, webpack, jQuery) turned int
 - Phase 5 added the AI mask (`src/js/ai/mask*.js`): free-form selection tools that Inpaint and Edit use instead of the rectangle. Phase 7 first pass added `src/css/modern.css` (dark and light).
 - Phase 6 added Ctrl+Enter and Ctrl+Shift+E shortcuts, prompt history and a session cost chip.
 - Phase 7 is finished apart from small leftovers (see `plan.md`).
-- Next: README screenshots (owner), optional Select Subject, merge the PR stack, then new ideas from `plan.md` section 12.
+- Next: optional Select Subject, then new ideas from `plan.md` section 12. Release v0.1.0 and the Pages demo are live.
 
 ## Run it
 
