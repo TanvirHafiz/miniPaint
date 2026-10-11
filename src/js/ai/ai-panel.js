@@ -26,6 +26,8 @@ import {
 	VERBS, VERB_LABELS, RUNNERS, PROMPT_REQUIRED, SUPPORTS_VARIATIONS, AiUserError,
 } from './ai-verbs.js';
 import { session } from './ai-generate.js';
+import { mask as maskStore } from './mask.js';
+import { build_mask_section } from './mask-ui.js';
 
 const STATE_KEY = 'minipaint_ai_panel';
 const PANEL_WIDTH = 320;
@@ -157,9 +159,12 @@ export class AI_panel_class {
 		this.closeButton.addEventListener('click', () => this.set_open(false));
 		this.make_draggable(header);
 
+		this.maskSection = build_mask_section();
+
 		const body = el('div', { class: 'ai_panel_body' }, [
 			this.prompt,
 			verbs,
+			this.maskSection,
 			presetRow,
 			this.options,
 			this.advancedToggle,
@@ -348,7 +353,7 @@ export class AI_panel_class {
 			});
 			o.appendChild(this.row('Source', sel));
 		} else if (this.verb === 'inpaint') {
-			o.appendChild(el('div', { class: 'ai_session', text: 'Uses the rectangle selection. Only the selection changes.' }));
+			o.appendChild(el('div', { class: 'ai_session', text: 'Uses the mask if there is one, otherwise the rectangle selection. Only that area changes.' }));
 		} else if (this.verb === 'edit') {
 			o.appendChild(el('div', { class: 'ai_session', text: 'With a selection, only that area changes; without one, the whole image is edited.' }));
 		}
@@ -499,7 +504,9 @@ export class AI_panel_class {
 		const verb = this.verb;
 		const runner = RUNNERS[verb];
 		// Capture the selection NOW (it is cleared on tool change, layer click and Escape).
-		const region = getAiRegion();
+		// A free-form mask (Phase 5) wins over the rectangle; its bounding box is the region.
+		const maskSnap = maskStore.snapshot();
+		const region = maskSnap ? maskSnap.region : getAiRegion();
 		const opts = {
 			prompt: this.prompt.value,
 			preset: this.state.preset,
@@ -534,7 +541,7 @@ export class AI_panel_class {
 
 		let result;
 		try {
-			result = await runner(opts, { region, signal });
+			result = await runner(opts, { region, signal, mask: maskSnap ? maskSnap.canvas : null });
 		} catch (error) {
 			clearInterval(timer);
 			this.hide_overlay();

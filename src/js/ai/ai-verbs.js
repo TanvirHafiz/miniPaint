@@ -82,7 +82,7 @@ function count_of(verb, opts) {
 /**
  * Shared shape for verbs that place into a crop with an optional selection clip.
  */
-function crop_result(verb, run, { crop, region, prompt, feather, signal, overlay, note }) {
+function crop_result(verb, run, { crop, region, prompt, feather, signal, overlay, note, mask }) {
 	const images = run.images;
 	const text = short_prompt(prompt);
 	return {
@@ -100,6 +100,7 @@ function crop_result(verb, run, { crop, region, prompt, feather, signal, overlay
 			const all = images.length;
 			const opts = chosen.map((img) => ({
 				feather,
+				mask,
 				name: layer_name(verb, text, images.indexOf(img), all),
 			}));
 			return placeResults(chosen.map((img) => img.dataURI || img.url), crop, region, opts);
@@ -131,14 +132,14 @@ export async function runGenerate(opts, ctx = {}) {
 export async function runInpaint(opts, ctx = {}) {
 	const prompt = String(opts.prompt || '').trim();
 	const region = ctx.region;
-	if (!region) throw new AiUserError('Inpaint needs a selection. Use the Select tool to draw a rectangle first.');
+	if (!region) throw new AiUserError('Inpaint needs a selection or a mask. Use the Select tool or the Mask tools in the AI panel.');
 	if (prompt.length < 2) throw new AiUserError('Type what should appear in the selection (at least 2 characters).');
 	const { air, info } = resolve_model('inpaint', opts);
 	const rule = sizeRuleFor(air);
 	const req = buildRequestRegion(region, { multiple: rule.multiple, min: rule.min, max: rule.max });
 	const flat = flattenToCanvas({ source: 'visible' });
 	const seedImage = exportRegion(flat, req.crop, req.send);
-	const maskImage = buildMask(region, req.crop, req.send, { feather: opts.maskFeather || 0 });
+	const maskImage = buildMask(region, req.crop, req.send, { feather: opts.maskFeather || 0, mask: ctx.mask || null });
 	const params = {
 		positivePrompt: prompt,
 		width: req.send.w,
@@ -149,7 +150,7 @@ export async function runInpaint(opts, ctx = {}) {
 	if (info.supportsMaskMargin && wantsMaskMargin(region, req.crop, req.send)) params.maskMargin = 64;
 	const run = await runModel(air, params, { seedImage, maskImage }, { signal: ctx.signal });
 	return crop_result('inpaint', run, {
-		crop: req.crop, region, prompt, feather: opts.feather, signal: ctx.signal, overlay: region,
+		crop: req.crop, region, prompt, feather: opts.feather, signal: ctx.signal, overlay: region, mask: ctx.mask || null,
 	});
 }
 
@@ -176,7 +177,7 @@ export async function runEdit(opts, ctx = {}) {
 		numberResults: count_of('edit', opts),
 	}, { referenceImages: [ref] }, { signal: ctx.signal });
 	return crop_result('edit', run, {
-		crop: req.crop, region, prompt, feather: opts.feather, signal: ctx.signal, overlay: target,
+		crop: req.crop, region, prompt, feather: opts.feather, signal: ctx.signal, overlay: target, mask: ctx.mask || null,
 	});
 }
 

@@ -214,6 +214,11 @@ Phase 0 findings for this section: hook the renderer inside `Base_layers_class.r
 - Feather / expand / contract.
 - Optional: "Select Subject" using Runware background removal output as a mask.
 
+**Phase 5 status: DONE (branch phase-5-selection), except optional Select Subject.**
+- Built a separate AI mask instead of extending miniPaint's rectangle selection (its tool system clears selection on tool or layer change): `src/js/ai/mask-math.js` (pure, unit tested: bbox, combine, magic wand flood fill, exact euclidean grow and shrink, feather), `mask.js` (document sized alpha store with its own 20 step undo, wand on the flattened image, from rectangle, to canvas, snapshot), `mask-editor.js` (red overlay at 45% and tools: rect, lasso, polygonal lasso, ellipse, magic wand with tolerance and contiguous, brush, eraser; modes New, Add, Subtract, Shift adds, Alt subtracts; [ and ] resize the brush; Ctrl+Z undoes the mask while a mask tool is active), `mask-ui.js` (collapsible Mask section in the AI panel: tools, mode, brush size, tolerance, Invert, Feather, Grow, Shrink, Clear, From select, Undo, Amount, Show mask).
+- When a mask exists, Inpaint and Edit use it instead of the rectangle: its bounding box is the region, the inpaint mask sent to Runware is the mask itself (soft edges kept), and the result layer is clipped to the mask. Verified in mock mode: result alpha is 255 inside the mask, 0 in a carved hole and outside, one undo removes the result.
+- Limits: the mask is cleared when the document size changes (resize, outpaint, upscale); mask edits are not in the document undo history; Outpaint, Remove BG and Upscale ignore the mask.
+
 ### Phase 6: Polish
 - Keyboard shortcuts: Ctrl+Enter to run AI, Ctrl+Shift+E for Edit.
 - Session cost counter in the status bar.
