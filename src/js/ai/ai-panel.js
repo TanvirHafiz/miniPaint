@@ -84,7 +84,7 @@ export class AI_panel_class {
 		this.state = {
 			preset: 'fast',
 			model: {},
-			strength: 0.85,
+			strength: 1,
 			count: 1,
 			feather: DEFAULTS.clipFeather,
 			outpaintPx: 256,
@@ -94,6 +94,8 @@ export class AI_panel_class {
 			advanced: false,
 			...load_state().opts,
 		};
+		// Older builds defaulted to 0.85, which keeps most of the original pixels. Treat that saved value as the old default.
+		if (this.state.strength === 0.85) this.state.strength = 1;
 	}
 
 	/* ------------------------------------------------------------ setup */

@@ -41,6 +41,8 @@ Do not use `npm run server` (it passes `--open`). Open http://localhost:8080.
   - `ai-panel.js` + `ai-panel.css`: floating AI panel. `ai-verbs.js`: the six verbs. `ai-generate.js`: quick Generate and settings dialogs. `ai-debug.js`: debug menu items.
 - `src/js/modules/ai/ai.js`: thin wrapper wiring the above into miniPaint's module system. Menu entries are in `src/js/config-menu.js`.
 
+- Live test (2026-10, real key, about $0.01 total): Generate, Inpaint, Edit, Outpaint, Remove BG and Upscale all work. FLUX Fill (`runware:102@1`) needs `CFGScale` 20 and `strength` 1 for inpaint, otherwise it ignores the prompt and keeps the old pixels (now the defaults).
+
 ## Rules
 
 - Keep new code in `src/js/ai/`, `src/js/layer-effects/` and `server/`. Touch core miniPaint files only with small, commented hooks.
